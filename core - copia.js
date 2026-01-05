@@ -1,13 +1,5 @@
-const PRESTART_SECONDS = 10;
-var formatClock = typeof formatClock === 'function'
-  ? formatClock
-  : function (totalSeconds) {
-    const total = Math.max(0, Number(totalSeconds) || 0);
-    const minutes = Math.floor(total / 60);
-    const seconds = Math.floor(total % 60);
-    return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
-  };
-if (typeof window !== 'undefined') {
+﻿const PRESTART_SECONDS = 10;
+      if (typeof window !== 'undefined') {
         window.__CORE_LOADED__ = true;
       }
       const LOW_CONFIDENCE = 0.6;
@@ -113,25 +105,6 @@ if (typeof window !== 'undefined') {
         { process: 'REPOSAR', regex: /(reposar|descansar)/i },
         { process: 'ENFRIAR', regex: /(enfriar|refrigerar|temperar)/i }
       ];
-      const TECHNIQUE_MAP = {
-        BRASEADO: 'COCER',
-        BRASADO: 'COCER',
-        BRASEAR: 'COCER',
-        ESTOFADO: 'COCER',
-        GUISADO: 'COCER',
-        CONFITADO: 'COCER',
-        CONFITAR: 'COCER',
-        SOUS_VIDE: 'COCER',
-        AL_VACIO: 'COCER',
-        BAJO_VACIO: 'COCER',
-        ESCALIVAR: 'HORNEAR',
-        PLANCHA: 'SALTEAR',
-        TEMPURA: 'FREIR',
-        REBOZADO: 'FREIR',
-        REBOZAR: 'FREIR',
-        AHUMAR: 'HORNEAR',
-        GRATINADO: 'GRATINAR'
-      };
 
       const PROCESS_RESOURCE_PREF = {
         LAVAR: ['FREGADERO'],
@@ -155,59 +128,6 @@ if (typeof window !== 'undefined') {
         OTRO: [null]
       };
 
-      const VERB_MAP = {
-        LAVAR: { phase: 'MISE_EN_PLACE', baseMin: 8, resourceKey: 'FREGADERO' },
-        ESCURRIR: { phase: 'MISE_EN_PLACE', baseMin: 6, resourceKey: 'FREGADERO' },
-        CORTAR: { phase: 'MISE_EN_PLACE', baseMin: 12, resourceKey: 'ESTACION' },
-        MEZCLAR: { phase: 'PREELABORACION', baseMin: 12, resourceKey: 'ESTACION' },
-        MONTAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: 'ESTACION' },
-        FORMAR: { phase: 'PREELABORACION', baseMin: 12, resourceKey: 'ESTACION' },
-        TRITURAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: 'ESTACION' },
-        SALTEAR: { phase: 'PREELABORACION', baseMin: 18, resourceKey: 'FOGONES' },
-        SOFREIR: { phase: 'PREELABORACION', baseMin: 15, resourceKey: 'FOGONES' },
-        FREIR: { phase: 'PREELABORACION', baseMin: 14, resourceKey: 'FOGONES' },
-        COCER: { phase: 'PREELABORACION', baseMin: 22, resourceKey: 'FOGONES' },
-        POCHAR: { phase: 'PREELABORACION', baseMin: 18, resourceKey: 'FOGONES' },
-        HORNEAR: { phase: 'PREELABORACION', baseMin: 45, resourceKey: 'HORNO' },
-        ASAR: { phase: 'PREELABORACION', baseMin: 55, resourceKey: 'HORNO' },
-        GRATINAR: { phase: 'PREELABORACION', baseMin: 20, resourceKey: 'HORNO' },
-        BANO_MARIA: { phase: 'PREELABORACION', baseMin: 40, resourceKey: 'HORNO' },
-        EMPLATAR: { phase: 'SERVICIO', baseMin: 8, resourceKey: 'ESTACION' },
-        DECORAR: { phase: 'SERVICIO', baseMin: 6, resourceKey: 'ESTACION' },
-        TERMINAR: { phase: 'SERVICIO', baseMin: 6, resourceKey: 'ESTACION' },
-        LIMPIAR: { phase: 'MISE_EN_PLACE', baseMin: 6, resourceKey: 'FREGADERO' },
-        REPOSAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: null },
-        ENFRIAR: { phase: 'PREELABORACION', baseMin: 12, resourceKey: null }
-      };
-
-      const RESOURCE_HINTS = {
-        horno: 'HORNO',
-        hornos: 'HORNO',
-        fogon: 'FOGONES',
-        fogones: 'FOGONES',
-        sarten: 'FOGONES',
-        plancha: 'FOGONES',
-        olla: 'FOGONES',
-        estacion: 'ESTACION',
-        mesa: 'ESTACION',
-        tabla: 'ESTACION',
-        fregadero: 'FREGADERO',
-        pila: 'FREGADERO',
-        lavavajillas: 'LAVAVAJILLAS'
-      };
-
-      const STOPWORDS_PLATO = new Set([
-        'procesos',
-        'ingredientes',
-        'recursos',
-        'pax',
-        'comensales',
-        'personas',
-        'raciones',
-        'menu',
-        'elaboraciones',
-        'plato'
-      ]);
       const STYLE_FLAGS = [
         'CASERO',
         'GOURMET',
@@ -560,7 +480,7 @@ if (typeof window !== 'undefined') {
           subprocesos: [
             sp('CORTAR', 'cortar ingredientes de {plato}', 'MISE_EN_PLACE', 1),
             sp('MONTAR', 'montar {plato}', 'PREELABORACION', 1),
-            sp('MEZCLAR', 'aliñar {plato}', 'PREELABORACION', 1),
+            sp('MEZCLAR', 'aliÃ±ar {plato}', 'PREELABORACION', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
           procesos_obligatorios: ['MONTAR'],
@@ -576,7 +496,7 @@ if (typeof window !== 'undefined') {
           subprocesos: [
             sp('CORTAR', 'cortar tomate', 'MISE_EN_PLACE', 1),
             sp('MONTAR', 'montar {plato}', 'PREELABORACION', 1),
-            sp('MEZCLAR', 'aliñar {plato}', 'PREELABORACION', 1),
+            sp('MEZCLAR', 'aliÃ±ar {plato}', 'PREELABORACION', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
           procesos_obligatorios: ['MONTAR'],
@@ -708,7 +628,7 @@ if (typeof window !== 'undefined') {
           estilos: ['FRIO', 'EMPLATADO_MINIMO', 'SALUDABLE'],
           subprocesos: [
             sp('CORTAR', 'cortar ingredientes de {plato}', 'MISE_EN_PLACE', 1),
-            sp('MEZCLAR', 'aliñar ingredientes', 'PREELABORACION', 1),
+            sp('MEZCLAR', 'aliÃ±ar ingredientes', 'PREELABORACION', 1),
             sp('MONTAR', 'montar bowl', 'SERVICIO', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
@@ -988,7 +908,7 @@ if (typeof window !== 'undefined') {
           estilos: ['FRIO', 'EMPLATADO_CUIDADO'],
           subprocesos: [
             sp('CORTAR', 'cortar {plato}', 'MISE_EN_PLACE', 2),
-            sp('MEZCLAR', 'aliñar {plato}', 'PREELABORACION', 2),
+            sp('MEZCLAR', 'aliÃ±ar {plato}', 'PREELABORACION', 2),
             sp('MONTAR', 'montar {plato}', 'SERVICIO', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
@@ -1153,99 +1073,6 @@ if (typeof window !== 'undefined') {
         return Array.from(merged).filter((item) => STYLE_FLAGS.includes(item));
       }
 
-      const DISH_PATTERNS = [
-        {
-          id: 'CROQUETAS',
-          match: (name) => normalizeToken(name).includes('croqueta'),
-          extraProcesses: ['COCER', 'ENFRIAR', 'FORMAR', 'FREIR'],
-          questions: [
-            {
-              id: 'CROQ_TIPO',
-              pregunta: 'Croquetas: tipo?',
-              opciones: ['CASERAS', 'COMPRADAS'],
-              tipo: 'CROQUETAS_TIPO'
-            }
-          ],
-          timeMultiplier: 1.2,
-          resourceHints: ['FOGONES', 'ESTACION', 'FREGADERO'],
-          primaryProcess: 'FREIR'
-        },
-        {
-          id: 'EMPANADILLAS',
-          match: (name) => normalizeToken(name).includes('empanadilla'),
-          extraProcesses: ['FORMAR', 'FREIR'],
-          questions: [
-            {
-              id: 'EMP_METODO',
-              pregunta: 'Empanadillas: metodo?',
-              opciones: ['FOGONES', 'HORNO'],
-              tipo: 'METODO'
-            }
-          ],
-          timeMultiplier: 1.1,
-          resourceHints: ['FOGONES', 'HORNO', 'ESTACION'],
-          primaryProcess: 'FREIR'
-        },
-        {
-          id: 'FLAN',
-          match: (name) => normalizeToken(name).includes('flan'),
-          extraProcesses: ['MEZCLAR', 'BANO_MARIA', 'ENFRIAR', 'EMPLATAR'],
-          questions: [
-            {
-              id: 'FLAN_TIPO',
-              pregunta: 'Flan: casero o comprado?',
-              opciones: ['CASERO', 'COMPRADO'],
-              tipo: 'FLAN_TIPO'
-            }
-          ],
-          timeMultiplier: 1.3,
-          resourceHints: ['HORNO', 'ESTACION'],
-          primaryProcess: 'BANO_MARIA'
-        },
-        {
-          id: 'TORTILLA',
-          match: (name) => normalizeToken(name).includes('tortilla'),
-          extraProcesses: ['CORTAR', 'SOFREIR', 'COCER'],
-          timeMultiplier: 1.1,
-          resourceHints: ['FOGONES', 'ESTACION'],
-          primaryProcess: 'COCER'
-        },
-        {
-          id: 'CREMA',
-          match: (name) => {
-            const token = normalizeToken(name);
-            return token.includes('crema') || token.includes('sopa');
-          },
-          extraProcesses: ['CORTAR', 'COCER', 'TRITURAR'],
-          timeMultiplier: 1.15,
-          resourceHints: ['FOGONES', 'ESTACION'],
-          primaryProcess: 'COCER'
-        },
-        {
-          id: 'RISOTTO',
-          match: (name) => normalizeToken(name).includes('risotto'),
-          extraProcesses: ['SOFREIR', 'COCER'],
-          timeMultiplier: 1.25,
-          resourceHints: ['FOGONES'],
-          primaryProcess: 'COCER'
-        },
-        {
-          id: 'PASTA',
-          match: (name) => normalizeToken(name).includes('pasta'),
-          extraProcesses: ['COCER', 'MEZCLAR'],
-          timeMultiplier: 1.1,
-          resourceHints: ['FOGONES', 'ESTACION'],
-          primaryProcess: 'COCER'
-        },
-        {
-          id: 'AL_HORNO',
-          match: (name) => /al horno|horno|asado|hornead/.test(normalizeToken(name)),
-          extraProcesses: ['HORNEAR', 'REPOSAR'],
-          timeMultiplier: 1.4,
-          resourceHints: ['HORNO', 'ESTACION'],
-          primaryProcess: 'HORNEAR'
-        }
-      ];
       function formatSubprocessName(template, dishName) {
         return String(template || '').replace(/\{plato\}/gi, dishName).trim();
       }
@@ -1419,8 +1246,7 @@ if (typeof window !== 'undefined') {
         }
       };
 
-      const RECIPE_STORAGE_KEY = 'JCD_RECIPES_V1';
-      const LEGACY_RECIPE_STORAGE_KEY = 'jcd_recipes_v1';
+      const RECIPE_STORAGE_KEY = 'jcd_recipes_v1';
       const RECIPE_ACTIVE_KEY = 'jcd_active_recipe_v1';
       const LAST_PLAN_KEY = 'jcd_lastPlan_v1';
       const SETTINGS_KEY = 'jcd_settings_v1';
@@ -2238,7 +2064,9 @@ if (typeof window !== 'undefined') {
         }
         if (summary) {
           state.lastPlanMessage = summary;
-          setText(planStatusEl, summary);
+          if (planStatusEl) {
+            planStatusEl.textContent = summary;
+          }
         }
         if (Array.isArray(questions) && questions.length) {
           plan.preguntas_rapidas = questions;
@@ -2267,9 +2095,7 @@ if (typeof window !== 'undefined') {
           phases: normalized.fases || [...PHASES],
           tareas: deepClone(normalized.tareas || []),
           notes: normalized.notas || null,
-          source: overrides.source || normalized.source || null,
-          menuText: overrides.menuText ?? appState.menuRawText ?? '',
-          createdAt: overrides.createdAt || new Date().toISOString()
+          source: overrides.source || normalized.source || null
         };
       }
 
@@ -2289,7 +2115,6 @@ if (typeof window !== 'undefined') {
       function saveRecipesToStorage() {
         try {
           localStorage.setItem(RECIPE_STORAGE_KEY, JSON.stringify(recipes));
-          localStorage.setItem(LEGACY_RECIPE_STORAGE_KEY, JSON.stringify(recipes));
         } catch (error) {
           // ignore
         }
@@ -2297,12 +2122,9 @@ if (typeof window !== 'undefined') {
 
       function loadRecipesFromStorage() {
         try {
-          const raw = localStorage.getItem(RECIPE_STORAGE_KEY) || localStorage.getItem(LEGACY_RECIPE_STORAGE_KEY);
+          const raw = localStorage.getItem(RECIPE_STORAGE_KEY);
           const parsed = raw ? JSON.parse(raw) : [];
           recipes = Array.isArray(parsed) ? parsed : [];
-          if (raw && !localStorage.getItem(RECIPE_STORAGE_KEY)) {
-            localStorage.setItem(RECIPE_STORAGE_KEY, JSON.stringify(recipes));
-          }
         } catch (error) {
           recipes = [];
         }
@@ -2355,7 +2177,6 @@ if (typeof window !== 'undefined') {
         recipe.phases = plan.fases || recipe.phases;
         recipe.tareas = deepClone(plan.tareas || []);
         recipe.notes = plan.notas || recipe.notes || null;
-        recipe.menuText = appState.menuRawText ?? recipe.menuText ?? '';
         saveRecipesToStorage();
         return recipe;
       }
@@ -2387,13 +2208,6 @@ if (typeof window !== 'undefined') {
         setPlan(nextPlan, null, 'Receta cargada', []);
         state.activeRecipeId = recipe.id;
         localStorage.setItem(RECIPE_ACTIVE_KEY, recipe.id);
-        if (manualTextEl && recipe.menuText) {
-          manualTextEl.value = recipe.menuText;
-          appState.menuRawText = recipe.menuText;
-          pdfState.text = recipe.menuText;
-          setState({ manualTextOpen: true });
-          updatePdfStatus();
-        }
         if (options.mode) {
           setUIMode(options.mode);
         }
@@ -2455,35 +2269,14 @@ if (typeof window !== 'undefined') {
         return normalized.trim();
       }
 
-      function normalizeTextLite(text) {
-        return String(text || '')
-          .normalize('NFC')
-          .replace(/\u00A0/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-      }
-
-            function getEl(id) {
-        if (!id || typeof document === 'undefined') {
-          return null;
-        }
-        return document.getElementById(id);
-      }
-
-      function setText(target, value) {
-        const el = typeof target === 'string' ? getEl(target) : target;
-        if (el) {
-          el.textContent = value;
-        }
-      }
-function normalizeLine(line) {
+      function normalizeLine(line) {
         return line.replace(/^[\-\*\d\.\)\u2022]+\s*/, '').replace(/\s+/g, ' ').trim();
       }
 
       function lineLooksLikeResource(line) {
         const raw = String(line || '');
         const normalized = normalizeToken(raw);
-        if (raw.includes('·')) {
+        if (raw.includes('Â·')) {
           return true;
         }
         if (/\b(recursos|capacidad|uso)\b/.test(normalized)) {
@@ -2663,134 +2456,6 @@ function normalizeLine(line) {
         return shortenText(stripTaskNoise(plato), 26) || 'Plato';
       }
 
-      function formatClock(totalSeconds) {
-        const total = Math.max(0, Number(totalSeconds) || 0);
-        const minutes = Math.floor(total / 60);
-        const seconds = Math.floor(total % 60);
-        return `${minutes}:${String(seconds).padStart(2, '0')}`;
-      }
-
-      function mapTechniqueToProcess(value) {
-        const cleaned = stripDiacritics(String(value || ''))
-          .toUpperCase()
-          .replace(/[^A-Z0-9\s_]/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-        if (!cleaned) {
-          return null;
-        }
-        const direct = cleaned.replace(/\s+/g, '_');
-        if (TECHNIQUE_MAP[direct]) {
-          return TECHNIQUE_MAP[direct];
-        }
-        for (const key of Object.keys(TECHNIQUE_MAP)) {
-          if (direct.includes(key)) {
-            return TECHNIQUE_MAP[key];
-          }
-        }
-        return null;
-      }
-      function normalizeProcessKey(value) {
-        const raw = String(value || '').trim();
-        if (!raw) {
-          return 'OTRO';
-        }
-        const cleaned = stripDiacritics(raw)
-          .toUpperCase()
-          .replace(/[^A-Z0-9\s_]/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-        const direct = cleaned.replace(/\s+/g, '_');
-        if (PROCESS_TYPES.includes(direct)) {
-          return direct;
-        }
-        const mapped = mapTechniqueToProcess(cleaned);
-        if (mapped) {
-          return mapped;
-        }
-        if (cleaned.includes('BA�O') || cleaned.includes('BANO')) {
-          return 'BANO_MARIA';
-        }
-        const inferred = inferProcessFromName(raw);
-        if (PROCESS_TYPES.includes(inferred)) {
-          return inferred;
-        }
-        return 'OTRO';
-      }
-
-      function getExpectedResourceForProcess(processNameOrKey, resources) {
-        const processKey = normalizeProcessKey(processNameOrKey);
-        const prefs = PROCESS_RESOURCE_PREF[processKey] || [];
-        let typeKey = prefs.find((item) => item) || null;
-        const verbSpec = VERB_MAP[processKey];
-        if (!typeKey && verbSpec && verbSpec.resourceKey) {
-          typeKey = verbSpec.resourceKey;
-        }
-        if (!typeKey) {
-          const normalized = normalizeToken(processKey);
-          if (/lavar|escurrir|limpiar/.test(normalized)) {
-            typeKey = 'FREGADERO';
-          } else if (/cortar|picar|pelar/.test(normalized)) {
-            typeKey = 'ESTACION';
-          } else if (/mezclar|montar|emplatar/.test(normalized)) {
-            typeKey = 'ESTACION';
-          } else if (/cocer|saltear|freir|sofreir|hervir|guisar|cocinar/.test(normalized)) {
-            typeKey = 'FOGONES';
-          } else if (/hornear|asar|gratin/.test(normalized)) {
-            typeKey = 'HORNO';
-          }
-        }
-        if (!typeKey) {
-          return { needs: false, typeKey: null, resourceId: null, missing: false, processKey };
-        }
-        const catalog = getEffectiveResourcesCatalog(resources);
-        const candidates = catalog.byTypeKey[typeKey] || [];
-        const available =
-          candidates.find((resource) => sanitizeInt(resource.capacidad, 0) > 0) || candidates[0] || null;
-        const resourceId = available ? available.id : null;
-        return { needs: true, typeKey, resourceId, missing: !resourceId, processKey };
-      }
-
-      function resourceForProcess(processKey, resources, resourceWarnings, guidedQuestions, taskId, dishName) {
-        const expected = getExpectedResourceForProcess(processKey, resources);
-        if (!expected.needs) {
-          const pref = PROCESS_RESOURCE_PREF[expected.processKey];
-          if (Array.isArray(pref) && pref.length && pref.every((item) => !item)) {
-            return null;
-          }
-          const dishHint = dishName ? inferResourceForDish(dishName) : null;
-          if (dishHint) {
-            const catalog = getEffectiveResourcesCatalog(resources);
-            const candidates = catalog.byTypeKey[dishHint] || [];
-            const pick =
-              candidates.find((resource) => sanitizeInt(resource.capacidad, 0) > 0) || candidates[0] || null;
-            if (pick) {
-              return pick.id;
-            }
-          }
-          const catalog = getEffectiveResourcesCatalog(resources);
-          return catalog.list[0] ? catalog.list[0].id : null;
-        }
-        if (expected.resourceId) {
-          return expected.resourceId;
-        }
-        if (expected.typeKey && Array.isArray(resourceWarnings)) {
-          resourceWarnings.push(`Recurso sugerido: ${expected.typeKey}`);
-        }
-        if (expected.typeKey && Array.isArray(guidedQuestions)) {
-          guidedQuestions.push({
-            id: `ADD_RESOURCE_${expected.typeKey}_${taskId || 'TASK'}`,
-            pregunta: `Falta recurso ${expected.typeKey}. Anadirlo?`,
-            opciones: ['SI', 'NO'],
-            afecta_a: taskId ? [taskId] : [],
-            tipo: 'ADD_RESOURCE',
-            recurso_tipo: expected.typeKey,
-            recurso_nombre: RESOURCE_LABELS[expected.typeKey] || expected.typeKey
-          });
-        }
-        return null;
-      }
-
       function getShortResourceLabelFor(task, resources) {
         if (task.recurso_id) {
           return resourceLabelForId(task.recurso_id, resources);
@@ -2893,56 +2558,6 @@ function normalizeLine(line) {
 
       function buildFallbackLines(text) {
         let virtual = normalizeText(text);
-        // Preprocess flattened PDFs: split numbered dishes and section labels.
-        virtual = virtual.replace(
-          /(^|\s)(\d{1,2})\.\s+(?=[A-Z\u00C1\u00C9\u00CD\u00D3\u00DA\u00DC\u00D1])/g,
-          '\n$2. '
-        );
-        virtual = virtual.replace(/(^|\s)(\d{1,2})\.\s+/g, '\n$2. ');
-        const sectionLabels = [
-          'MENU NOCHEVIEJA',
-          'MENU NOCHIEVIEJA',
-          'ESTRUCTURA OPERATIVA PARA APP',
-          'EQUIPO DE COCINA',
-          'RECURSOS DISPONIBLES',
-          'MENU Y ELABORACIONES',
-          'MENU Y ELABORACION'
-        ];
-        sectionLabels.forEach((label) => {
-          const escaped = label.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const re = new RegExp(`\\s*${escaped}\\s*`, 'gi');
-        virtual = virtual.replace(re, `\n${label}\n`);
-        });
-        virtual = virtual
-          .replace(/\s+Procesos\s*:/gi, '\nProcesos:')
-          .replace(/\s+Recursos\s*:/gi, '\nRecursos:')
-          .replace(/\s+Ingredientes\s*:/gi, '\nIngredientes:');
-        virtual = virtual
-          .replace(/Procesos\s*:\s*/gi, '\nProcesos:\n')
-          .replace(/Recursos\s*:\s*/gi, '\nRecursos:\n')
-          .replace(/Ingredientes\s*\((\d+)\s*pax\)\s*:\s*/gi, '\nIngredientes ($1 pax):\n')
-          .replace(/Ingredientes\s*:\s*/gi, '\nIngredientes:\n')
-          .replace(/,\s*/g, ', ');
-        virtual = virtual
-          .replace(/\nProcesos:\n([^\n]+)/gi, (match, rest) => {
-            const parts = rest.split(',').map((item) => item.trim()).filter(Boolean);
-            if (!parts.length) {
-              return match;
-            }
-            return '\nProcesos:\n' + parts.map((item) => ` - ${item}`).join('\n');
-          })
-          .replace(/\nIngredientes(?:\s*\(\d+\s*pax\))?:\n([^\n]+)/gi, (match, rest) => {
-            const parts = rest.split(';').map((item) => item.trim()).filter(Boolean);
-            if (parts.length <= 1) {
-              return match;
-            }
-            const headerMatch = match.match(/^\nIngredientes[^\n]*:\n/i);
-            const header = headerMatch ? headerMatch[0] : '\nIngredientes:\n';
-            return header + parts.map((item) => ` - ${item}`).join('\n');
-          });
-        // Ensure common section labels start on a new line (PDF extraction often flattens everything)
-        virtual = virtual.replace(/\b(MENU\s+Y\s+ELABORACIONES)\b/gi, '\n$1\n');
-        virtual = virtual.replace(/\b(Procesos?|Recursos?|Ingredientes?)\s*:/gi, '\n$1:');
         virtual = virtual
           .replace(/\s*[\u2022\u00b7]\s*/g, "\n- ")
           .replace(/\s+-\s+/g, "\n- ")
@@ -2975,43 +2590,6 @@ function normalizeLine(line) {
         return { normalized, lines, baseLineCount: baseLines.length, fallbackUsed };
       }
 
-      function stripRepeatedHeaders(lines) {
-        const counts = {};
-        (lines || []).forEach((line) => {
-          const trimmed = String(line || '').trim();
-          if (!trimmed || trimmed.length > 60) {
-            return;
-          }
-          const key = normalizeToken(trimmed);
-          counts[key] = (counts[key] || 0) + 1;
-        });
-        const repeated = new Set(
-          Object.entries(counts)
-            .filter((entry) => entry[1] >= 3)
-            .map((entry) => entry[0])
-        );
-        if (!repeated.size) {
-          return lines || [];
-        }
-        return (lines || []).filter((line) => !repeated.has(normalizeToken(line)));
-      }
-
-      function isTrashLine(line) {
-        const trimmed = String(line || '').trim();
-        if (!trimmed) {
-          return true;
-        }
-        if (/^[-_=]{3,}$/.test(trimmed)) {
-          return true;
-        }
-        if (/^\d+$/.test(trimmed)) {
-          return true;
-        }
-        if (/^pagina\s*\d+/i.test(trimmed)) {
-          return true;
-        }
-        return trimmed.length <= 2;
-      }
       function extractPaxFromLine(line) {
         const match = String(line || '').match(/(\d+)\s*(comensales|personas)/i);
         if (!match) {
@@ -3043,8 +2621,9 @@ function normalizeLine(line) {
           if (!trimmed) {
             return;
           }
-          const process = normalizeProcessKey(trimmed);
-          if (process && process !== 'OTRO' && !list.includes(process)) {
+          const direct = trimmed.toUpperCase();
+          const process = PROCESS_TYPES.includes(direct) ? direct : inferProcessFromName(trimmed);
+          if (process && !list.includes(process)) {
             list.push(process);
           }
         });
@@ -3099,7 +2678,7 @@ function normalizeLine(line) {
         return { rol: 'Equipo', nivel: 1 };
       }
 
-      function parseTeamFromLines(parseLines) {
+        function parseTeamFromLines(lines) {
           const team = [];
           const seenNames = new Set();
           const usedIds = new Set();
@@ -3156,434 +2735,6 @@ function normalizeLine(line) {
           return team;
         }
 
-      function parseResourceHintsLite(text) {
-        const hints = [];
-        const token = normalizeToken(text || '');
-        Object.keys(RESOURCE_HINTS).forEach((key) => {
-          if (new RegExp(`\\b${key}\\b`, 'i').test(token)) {
-            const value = RESOURCE_HINTS[key];
-            if (value && !hints.includes(value)) {
-              hints.push(value);
-            }
-          }
-        });
-        return hints;
-      }
-
-      function cleanDishTitle(line) {
-        let name = String(line || '').trim();
-        name = name.replace(/^\d{1,2}\s*[\.)-]\s*/, '');
-        name = name.split(/\b(?:Procesos?|Ingredientes?|Recursos?)\b\s*:/i)[0].trim();
-        if (!name) {
-          return '';
-        }
-        const words = name
-          .split(/\s+/)
-          .map((word) => word.trim())
-          .filter((word) => {
-            const token = normalizeToken(word.replace(/[^A-Za-z0-9]/g, ''));
-            if (!token) {
-              return false;
-            }
-            return !STOPWORDS_PLATO.has(token);
-          });
-        return sanitizeDishName(words.join(' ').trim());
-      }
-
-      function extractDishesFromLines(parseLines) {
-        if (!Array.isArray(lines) || !lines.length) {
-          return [];
-        }
-        const normalized = lines.map((line) => normalizeToken(line));
-        let startIndex = normalized.findIndex((line) => line.includes('menu y elaboraciones'));
-        const start = startIndex >= 0 ? startIndex + 1 : 0;
-        let endIndex = lines.length;
-        for (let i = start; i < normalized.length; i += 1) {
-          if (
-            normalized[i].includes('equipo de cocina') ||
-            normalized[i].includes('recursos disponibles') ||
-            normalized[i].includes('estructura operativa')
-          ) {
-            endIndex = i;
-            break;
-          }
-        }
-        const blocks = [];
-        let current = null;
-        for (let i = start; i < endIndex; i += 1) {
-          const line = lines[i];
-          if (!line) {
-            continue;
-          }
-          const match = line.match(/^\s*(\d{1,2})\s*[\.)-]\s+(.+)$/);
-          if (match) {
-            if (current) {
-              blocks.push(current);
-            }
-            current = { number: match[1], lines: [line] };
-            continue;
-          }
-          if (current) {
-            current.lines.push(line);
-          }
-        }
-        if (current) {
-          blocks.push(current);
-        }
-        if (blocks.length) {
-          return blocks;
-        }
-        // Fallback: cualquier linea numerada en el documento.
-        lines.forEach((line) => {
-          const match = String(line || '').match(/^\s*(\d{1,2})\s*[\.)-]\s+(.+)$/);
-          if (match) {
-            blocks.push({ number: match[1], lines: [line] });
-          }
-        });
-        return blocks;
-      }
-
-      function parseDishBlock(blockLines) {
-        if (!Array.isArray(blockLines) || !blockLines.length) {
-          return null;
-        }
-        const lines = blockLines.map((line) => String(line || '').trim()).filter(Boolean);
-        if (!lines.length) {
-          return null;
-        }
-        const dishName = cleanDishTitle(lines[0]);
-        if (!dishName) {
-          return null;
-        }
-        let pax = extractPaxFromLine(lines[0]) || null;
-        let tiempo = extractTimeRange(lines[0]);
-        const procesos = [];
-        const ingredientes = [];
-        const recursos = [];
-        let mode = null;
-
-        const addProcesses = (text) => {
-          const list = normalizeProcessList(parseProcessTokens(text));
-          list.forEach((proc) => {
-            if (!procesos.includes(proc)) {
-              procesos.push(proc);
-            }
-          });
-        };
-        const addResources = (text) => {
-          const hints = parseResourceHints(text).concat(parseResourceHintsLite(text));
-          hints.forEach((hint) => {
-            if (!recursos.includes(hint)) {
-              recursos.push(hint);
-            }
-          });
-        };
-        const addIngredient = (text) => {
-          const clean = String(text || '').replace(/^[-\u2022*]\s*/, '').trim();
-          if (clean) {
-            ingredientes.push(clean);
-          }
-        };
-
-        lines.forEach((rawLine, idx) => {
-          const trimmed = String(rawLine || '').trim();
-          if (!trimmed) {
-            return;
-          }
-          if (!tiempo) {
-            tiempo = extractTimeRange(trimmed) || tiempo;
-          }
-          const paxFound = extractPaxFromLine(trimmed);
-          if (paxFound) {
-            pax = paxFound;
-          }
-          if (/^procesos?\b/i.test(trimmed)) {
-            mode = 'procesos';
-            const rest = trimmed.split(':').slice(1).join(':').trim();
-            if (rest) {
-              addProcesses(rest);
-            }
-            return;
-          }
-          if (/^recursos?\b/i.test(trimmed)) {
-            mode = 'recursos';
-            const rest = trimmed.split(':').slice(1).join(':').trim();
-            if (rest) {
-              addResources(rest);
-            }
-            return;
-          }
-          if (/^ingredientes?\b/i.test(trimmed)) {
-            mode = 'ingredientes';
-            const rest = trimmed.split(':').slice(1).join(':').trim();
-            if (rest) {
-              rest
-                .split(';')
-                .map((item) => item.trim())
-                .filter(Boolean)
-                .forEach((item) => addIngredient(item));
-            }
-            return;
-          }
-          if (mode === 'procesos') {
-            addProcesses(trimmed.replace(/^[-\u2022*]\s*/, ''));
-            return;
-          }
-          if (mode === 'recursos') {
-            addResources(trimmed);
-            return;
-          }
-          if (mode === 'ingredientes') {
-            addIngredient(trimmed);
-            return;
-          }
-          if (idx === 0 && /procesos?\s*:/i.test(trimmed)) {
-            const rest = trimmed.split(/procesos?\s*:/i)[1] || '';
-            addProcesses(rest);
-          }
-          if (idx === 0 && /recursos\s*:/i.test(trimmed)) {
-            const rest = trimmed.split(/recursos\s*:/i)[1] || '';
-            addResources(rest);
-          }
-          if (idx === 0 && /ingredientes\s*:/i.test(trimmed)) {
-            const rest = trimmed.split(/ingredientes\s*:/i)[1] || '';
-            rest
-              .split(';')
-              .map((item) => item.trim())
-              .filter(Boolean)
-              .forEach((item) => addIngredient(item));
-          }
-        });
-
-        if (!recursos.length) {
-          addResources(dishName);
-        }
-
-        return {
-          id: makeIdFromName(dishName, 'PLATO'),
-          nombre: dishName,
-          tiempo,
-          origen: 'PDF',
-          categoria: null,
-          procesos,
-          recursos_hint: recursos,
-          pax,
-          ingredientes
-        };
-      }
-      function buildMenuIRFromRawText(rawText, sourceMeta = null) {
-        const normalizedText = normalizeText(rawText);
-        const normalizedForMatch = normalizeToken(normalizedText);
-        const { lines, baseLineCount, fallbackUsed } = normalizeLines(normalizedText);
-        const cleanedLines = stripRepeatedHeaders(lines);
-        const sectionItems = cleanedLines.map((line) => ({
-          text: line,
-          notes: isTrashLine(line) ? ['trash'] : []
-        }));
-        const effectiveLines = cleanedLines.filter((line) => !isTrashLine(line));
-        const parseLines = effectiveLines.length ? effectiveLines : cleanedLines;
-        const recursos = parseResourcesFromText(normalizedForMatch);
-        const equipo = parseTeamFromLines(parseLines);
-        const comensales = detectComensales(normalizedForMatch);
-        const fecha = detectDate(normalizedText);
-        const blocks = extractDishesFromLines(parseLines);
-        const platos = [];
-        const diagnostics = {
-          warnings: [],
-          errors: [],
-          byDish: [],
-          processCount: 0,
-          inferredCount: 0,
-          confidenceAvg: 0
-        };
-
-        const inferProcessesFromLines = (blockLines) => {
-          const joined = blockLines.join(' ');
-          const inferred = [];
-          PROCESS_KEYWORDS.forEach((entry) => {
-            if (entry.regex.test(joined)) {
-              inferred.push(entry.process);
-            }
-          });
-          const tokens = parseProcessTokens(joined).map((token) => normalizeProcessKey(token));
-          return normalizeProcessList(inferred.concat(tokens));
-        };
-
-        blocks.forEach((block, index) => {
-          const parsed = parseDishBlock(block.lines);
-          if (!parsed) {
-            diagnostics.errors.push(`Plato ${index + 1}: bloque no interpretable.`);
-            return;
-          }
-          const rawProcesses = Array.isArray(parsed.procesos) ? parsed.procesos.slice() : [];
-          let processes = rawProcesses.map((proc) => normalizeProcessKey(proc));
-          processes = normalizeProcessList(processes);
-          if (!processes.length) {
-            processes = inferProcessesFromLines(block.lines);
-            diagnostics.inferredCount += processes.length;
-          }
-          const recursosHint = Array.isArray(parsed.recursos_hint)
-            ? parsed.recursos_hint.map((hint) => normalizeResourceName(hint)).filter(Boolean)
-            : [];
-          const ingredientes = Array.isArray(parsed.ingredientes) ? parsed.ingredientes.filter(Boolean) : [];
-
-          const dishWarnings = [];
-          if (!processes.length) dishWarnings.push('Sin procesos');
-          if (!recursosHint.length) dishWarnings.push('Sin recursos');
-          if (!ingredientes.length) dishWarnings.push('Sin ingredientes');
-
-          const confidence = clamp(
-            0.45 +
-              (processes.length ? 0.25 : 0) +
-              (recursosHint.length ? 0.15 : 0) +
-              (ingredientes.length ? 0.1 : 0),
-            0.3,
-            0.95
-          );
-
-          diagnostics.processCount += processes.length;
-          diagnostics.byDish.push({ plato: parsed.nombre, warnings: dishWarnings, confidence });
-          dishWarnings.forEach((warn) => diagnostics.warnings.push(`${parsed.nombre}: ${warn}`));
-
-          platos.push({
-            id: parsed.id,
-            nombre: parsed.nombre,
-            tiempo: parsed.tiempo,
-            origen: parsed.origen || 'PDF',
-            categoria: parsed.categoria || null,
-            procesos: processes,
-            recursos_hint: recursosHint,
-            pax: parsed.pax || null,
-            ingredientes,
-            confianza: confidence
-          });
-        });
-
-        diagnostics.confidenceAvg = platos.length
-          ? clamp(platos.reduce((acc, item) => acc + (item.confianza || 0), 0) / platos.length, 0, 1)
-          : 0;
-
-        diagnostics.trashLines = sectionItems.filter((item) => item.notes && item.notes.length).length;
-
-        return {
-          source: sourceMeta,
-          rawText: rawText || '',
-          normalizedText,
-          lines: parseLines,
-          sections: [{ id: 'raw', title: 'RAW', items: sectionItems }],
-          lineCount: parseLines.length,
-          baseLineCount,
-          fallbackUsed,
-          recursos,
-          equipo,
-          comensales,
-          fecha,
-          platos,
-          parseDiagnostics: diagnostics
-        };
-      }
-
-      function menuIRToPlan(menuIR, existingResources, existingTeam) {
-        const resources = menuIR?.recursos?.length
-          ? menuIR.recursos
-          : Array.isArray(existingResources)
-            ? existingResources
-            : [];
-        const team = menuIR?.equipo?.length
-          ? menuIR.equipo
-          : Array.isArray(existingTeam)
-            ? existingTeam
-            : [];
-        const normalizedText = menuIR?.normalizedText || normalizeText(menuIR?.rawText || '');
-        const draft = {
-          rawText: menuIR?.rawText || '',
-          normalizedText,
-          rawTextLength: String(menuIR?.rawText || '').length,
-          normalizedTextLength: normalizedText.length,
-          platos: menuIR?.platos || [],
-          comensales: menuIR?.comensales || null,
-          fecha: menuIR?.fecha || null,
-          recursos: resources,
-          equipo: team,
-          lineCount: menuIR?.lineCount || 0,
-          baseLineCount: menuIR?.baseLineCount || 0,
-          fallbackUsed: Boolean(menuIR?.fallbackUsed),
-          lines: menuIR?.lines || []
-        };
-        const result = buildPlanFromDraft(draft);
-        const confidenceAvg = menuIR?.parseDiagnostics?.confidenceAvg;
-        if (typeof confidenceAvg === 'number' && confidenceAvg > 0 && confidenceAvg < 0.35) {
-          const note = 'Confianza baja: revisa platos y procesos.';
-          if (result.plan) {
-            const existing = Array.isArray(result.plan.incertidumbres_detectadas)
-              ? result.plan.incertidumbres_detectadas
-              : [];
-            result.plan.incertidumbres_detectadas = Array.from(new Set(existing.concat(note)));
-            const guided = Array.isArray(result.plan.preguntas_guiadas)
-              ? result.plan.preguntas_guiadas.slice()
-              : [];
-            guided.push({
-              id: 'GUIDE-PAX',
-              pregunta: 'Cuantos comensales?',
-              opciones: ['4', '6', '8', '10', '12'],
-              afecta_a: [],
-              tipo: 'PAX',
-              plato: 'GLOBAL'
-            });
-            guided.push({
-              id: 'GUIDE-TECNICA',
-              pregunta: 'Tecnica principal?',
-              opciones: ['HORNO', 'FOGONES', 'FRIO', 'MIXTA'],
-              afecta_a: [],
-              tipo: 'TECNICA',
-              plato: 'GLOBAL'
-            });
-            guided.push({
-              id: 'GUIDE-ORIGEN',
-              pregunta: 'Casero o comprado?',
-              opciones: ['CASERO', 'COMPRADO', 'MIXTO'],
-              afecta_a: [],
-              tipo: 'ORIGEN',
-              plato: 'GLOBAL'
-            });
-            result.plan.preguntas_guiadas = guided.slice(0, 5);
-          }
-        }
-        return { plan: result.plan, draft, suggestions: result.suggestions || [] };
-      }
-
-      function parseMenuToStructure(text) {
-        const normalized = normalizeText(text);
-        const normalizedForMatch = normalizeToken(normalized);
-        const { lines } = normalizeLines(normalized);
-        const recursos = parseResourcesFromText(normalizedForMatch);
-        const equipo = parseTeamFromLines(parseLines);
-        const platos = [];
-        const blocks = extractDishesFromLines(parseLines);
-        const inferProcessesFromLines = (blockLines) => {
-          const joined = blockLines.join(' ');
-          const inferred = [];
-          PROCESS_KEYWORDS.forEach((entry) => {
-            if (entry.regex.test(joined)) {
-              inferred.push(entry.process);
-            }
-          });
-          const tokens = normalizeProcessList(parseProcessTokens(joined));
-          return normalizeProcessList(inferred.concat(tokens));
-        };
-        blocks.forEach((block) => {
-          const parsed = parseDishBlock(block.lines);
-          if (!parsed) {
-            return;
-          }
-          if (!Array.isArray(parsed.procesos) || !parsed.procesos.length) {
-            parsed.procesos = inferProcessesFromLines(block.lines);
-          }
-          platos.push(parsed);
-        });
-        return { equipo, recursos, platos, lines };
-      }
-
       function parseMenuDraft(text) {
         const normalized = normalizeText(text);
         const normalizedForMatch = normalizeToken(normalized);
@@ -3592,7 +2743,7 @@ function normalizeLine(line) {
         const dishes = [];
         const comensales = detectComensales(normalizedForMatch);
         const fecha = detectDate(normalized);
-        const equipo = parseTeamFromLines(parseLines);
+        const equipo = parseTeamFromLines(lines);
         let currentCategory = null;
         let currentDish = null;
         let mode = null;
@@ -3772,7 +2923,7 @@ function normalizeLine(line) {
           fecha,
           recursos: resources,
           equipo,
-          lineCount: parseLines.length,
+          lineCount: lines.length,
           baseLineCount,
           fallbackUsed,
           lines
@@ -3780,12 +2931,8 @@ function normalizeLine(line) {
       }
 
       function inferResourceForDish(dishName) {
-        const profile = getDishPatternProfile(dishName);
-        if (profile && Array.isArray(profile.resourceHints) && profile.resourceHints.length) {
-          return profile.resourceHints[0];
-        }
-        const pattern = profile?.id || detectDishPattern(dishName);
-        const process = inferPrimaryProcessForDish(dishName, profile || pattern);
+        const pattern = detectDishPattern(dishName);
+        const process = inferPrimaryProcessForDish(dishName, pattern);
         const prefs = PROCESS_RESOURCE_PREF[process] || [null];
         return prefs.find((item) => item) || null;
       }
@@ -3911,88 +3058,59 @@ function normalizeLine(line) {
             return entry.process;
           }
         }
-        const mapped = mapTechniqueToProcess(token);
-        if (mapped) {
-          return mapped;
-        }
         return 'OTRO';
       }
 
-      function getDishPatternRegistry(dishName) {
-        const token = normalizeToken(dishName || '');
-        for (const pattern of DISH_PATTERNS) {
-          try {
-            if (pattern.match && pattern.match(token, dishName)) {
-              return pattern;
-            }
-          } catch (error) {
-            // ignore pattern errors
-          }
-        }
-        return null;
-      }
-
-      function getDishPatternProfile(dishName) {
-        const registry = getDishPatternRegistry(dishName);
-        if (registry) {
-          return registry;
-        }
-        const libraryPattern = findPatternForDish(dishName);
-        if (!libraryPattern) {
-          return null;
-        }
-        return {
-          id: libraryPattern.id,
-          extraProcesses: Array.isArray(libraryPattern.procesos_obligatorios)
-            ? libraryPattern.procesos_obligatorios
-            : [],
-          questions: [],
-          timeMultiplier: libraryPattern.tiempo_estimado ? 1.2 : 1,
-          resourceHints: Array.isArray(libraryPattern.recursos_tipicos)
-            ? libraryPattern.recursos_tipicos
-            : [],
-          primaryProcess:
-            Array.isArray(libraryPattern.procesos_obligatorios) && libraryPattern.procesos_obligatorios.length
-              ? libraryPattern.procesos_obligatorios[0]
-              : null
-        };
-      }
       function detectDishPattern(dishName) {
-        const profile = getDishPatternProfile(dishName);
-        if (profile && profile.id) {
-          return profile.id;
+        const normalized = normalizeToken(dishName);
+        if (normalized.includes('croqueta')) {
+          return 'CROQUETAS';
+        }
+        if (normalized.includes('flan')) {
+          return 'FLAN';
+        }
+        if (normalized.includes('empanadilla')) {
+          return 'EMPANADILLAS';
+        }
+        if (normalized.includes('tortilla')) {
+          return 'TORTILLA';
+        }
+        if (normalized.includes('risotto')) {
+          return 'RISOTTO';
+        }
+        if (normalized.includes('pasta')) {
+          return 'PASTA';
+        }
+        if (/(al horno|horno|asado|hornead)/.test(normalized)) {
+          return 'AL_HORNO';
         }
         return 'CASERO';
       }
 
       function inferPrimaryProcessForDish(dishName, pattern) {
         const normalized = normalizeToken(dishName);
-        const patternId = typeof pattern === 'string' ? pattern : pattern?.id;
-        if (pattern && pattern.primaryProcess) {
-          return pattern.primaryProcess;
-        }
-        if (patternId === 'CROQUETAS') {
+        if (pattern === 'CROQUETAS') {
           return 'FREIR';
         }
-        if (patternId === 'FLAN') {
+        if (pattern === 'FLAN') {
           return 'BANO_MARIA';
         }
-        if (patternId === 'AL_HORNO') {
+        if (pattern === 'AL_HORNO') {
           return 'HORNEAR';
         }
-        if (patternId === 'EMPANADILLAS') {
+        if (pattern === 'EMPANADILLAS') {
           return normalized.includes('horno') ? 'HORNEAR' : 'FREIR';
         }
-        if (patternId === 'TORTILLA') {
+        if (pattern === 'TORTILLA') {
           return 'COCER';
         }
-        if (patternId === 'CREMA') {
+        if (pattern === 'CREMA') {
           return 'COCER';
         }
-        if (patternId === 'RISOTTO') {
+        if (pattern === 'RISOTTO') {
           return 'COCER';
         }
-        if (patternId === 'PASTA') {
+        if (pattern === 'PASTA') {
           return 'COCER';
         }
         if (/(ensalada|tartar|carpaccio|crudo)/.test(normalized)) {
@@ -4020,13 +3138,12 @@ function normalizeLine(line) {
       }
 
       function inferProcessForResource(dishName, resourceId, resources) {
-        const profile = getDishPatternProfile(dishName);
-        const pattern = profile?.id || detectDishPattern(dishName);
+        const pattern = detectDishPattern(dishName);
         const resource = resources
           ? resources.find((item) => item.id === resourceId)
           : recursoById[resourceId];
         if (!resourceId) {
-          return inferPrimaryProcessForDish(dishName, profile || pattern);
+          return inferPrimaryProcessForDish(dishName, pattern);
         }
         if (resource?.tipo === RESOURCE_TYPES.LIMPIEZA) {
           const token = normalizeToken(resource.nombre);
@@ -4056,7 +3173,8 @@ function normalizeLine(line) {
         }
         return inferProcessFromName(dishName);
       }
-function buildTask(id, dishName, name, phase, duration, process, resource, level, deps, origin, confidence) {
+
+        function buildTask(id, dishName, name, phase, duration, process, resource, level, deps, origin, confidence) {
           return {
             id,
             plato: dishName,
@@ -4227,9 +3345,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         const dishName = dish.nombre;
         const slug = `d${index + 1}`;
         const inferred = !dish.tiempo || dish.origen !== 'PDF';
-        const patternProfile = getDishPatternProfile(dishName);
-        const timeMultiplier = patternProfile?.timeMultiplier || 1;
-        const baseTime = Math.max(1, computeBaseTime(dish) * timeMultiplier);
+        const baseTime = computeBaseTime(dish);
         const origin = 'IA';
         const confidenceBase = dish.tiempo ? 0.85 : 0.45;
         const level = inferLevelForDish(dishName);
@@ -4239,14 +3355,13 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         const uncertainties = [];
         const styles = mergeStyles([...DEFAULT_STYLES], detectStyleFlags(dishName));
 
-        const explicitProcesses = Array.isArray(processList)
-          ? processList.filter(Boolean)
-          : Array.isArray(dish.procesos)
-            ? dish.procesos.filter(Boolean)
-            : [];
-        const extraProcesses = Array.isArray(patternProfile?.extraProcesses)
-          ? patternProfile.extraProcesses
+        const explicitProcesses = Array.isArray(dish.procesos)
+          ? dish.procesos.filter(Boolean)
           : [];
+        if (explicitProcesses.length >= 2) {
+          return buildTasksFromProcessList(explicitProcesses, dish, index, resources, suggestions);
+        }
+
         const base = [];
         if (!explicitProcesses.includes('LAVAR')) {
           base.push('LAVAR');
@@ -4254,7 +3369,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         if (!explicitProcesses.includes('CORTAR')) {
           base.push('CORTAR');
         }
-        let processes = normalizeProcessList(base.concat(explicitProcesses, extraProcesses));
+        processes = base.concat(explicitProcesses);
         if (!processes.includes('EMPLATAR')) {
           processes.push('EMPLATAR');
         }
@@ -4262,37 +3377,13 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           const insertAt = Math.max(0, processes.length - 1);
           processes.splice(insertAt, 0, 'MEZCLAR');
         }
-        if (explicitProcesses.length) {
-          return buildTasksFromProcessList(processes, dish, index, resources, suggestions);
-        }
-        const ingredientCount = Array.isArray(dish.ingredientes) ? dish.ingredientes.length : 0;
-        const paxValue = sanitizeInt(dish.pax, 0);
-        const extraLoad = Math.min(10, Math.floor(ingredientCount / 6) * 2) + (paxValue >= 8 ? 2 : 0);
-        const dishResourceHints = Array.isArray(dish.recursos_hint) ? dish.recursos_hint : [];
-        const mergedResourceHints = dishResourceHints.concat(
-          Array.isArray(patternProfile?.resourceHints) ? patternProfile.resourceHints : []
-        );
 
         const addTask = (id, process, deps) => {
-          const verbSpec = VERB_MAP[process];
-          const phase = verbSpec?.phase || defaultPhaseForProcess(process);
-          const baseDuration = Number.isFinite(verbSpec?.baseMin)
-            ? verbSpec.baseMin
-            : estimateDuration(process, baseTime, dishName);
-          const duration = clamp(Math.round(baseDuration + extraLoad), 2, 180);
-          let resourceIdValue =
+          const phase = defaultPhaseForProcess(process);
+          const duration = estimateDuration(process, baseTime, dishName);
+          const resourceIdValue =
             resourceForProcess(process, resources, suggestions, guidedQuestions, id, dishName);
-          if (!resourceIdValue && mergedResourceHints.length) {
-            const catalog = getEffectiveResourcesCatalog(resources);
-            const hintKey = mergedResourceHints
-              .map((hint) => normalizeResourceName(hint))
-              .find((key) => catalog.byTypeKey[key] && catalog.byTypeKey[key].length);
-            if (hintKey) {
-              resourceIdValue = catalog.byTypeKey[hintKey][0].id;
-            }
-          }
           const verb = processToVerb(process, dishName);
-          const confidence = clamp((verbSpec ? 0.85 : 0.6) - (dish.tiempo ? 0 : 0.1), 0.35, 0.95);
           tasks.push(
             buildTask(
               id,
@@ -4305,7 +3396,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
               level,
               deps,
               origin,
-              confidence
+              clamp(confidenceBase - 0.1, 0.3, 0.95)
             )
           );
         };
@@ -4316,19 +3407,6 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           addTask(`${slug}-p${idx + 1}`, process, deps);
         });
 
-        if (patternProfile?.questions && patternProfile.questions.length) {
-          patternProfile.questions.forEach((question) => {
-            guidedQuestions.push({
-              id: `GUIDE-${slug}-${question.id}`,
-              pregunta: question.pregunta,
-              opciones: question.opciones || [],
-              afecta_a: question.afecta_a || [],
-              tipo: question.tipo || 'PATRON',
-              plato: dishName
-            });
-          });
-        }
-
         if (!dish.tiempo) {
           tasks.forEach((task) => {
             task.duracion_inferida = true;
@@ -4336,7 +3414,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           });
         }
 
-        return { tasks, questions, guidedQuestions, uncertainties, estilos: styles };
+        return { tasks, questions, guidedQuestions, uncertainties, estilos };
       }
 
       function buildTasksForDish(dish, index, resources, suggestions) {
@@ -4344,9 +3422,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         const slug = `d${index + 1}`;
         const inferred = !dish.tiempo || dish.origen !== 'PDF';
         const level = inferLevelForDish(dishName);
-        const patternProfile = getDishPatternProfile(dishName);
-        const timeMultiplier = patternProfile?.timeMultiplier || 1;
-        const baseTime = Math.max(1, computeBaseTime(dish) * timeMultiplier);
+        const baseTime = computeBaseTime(dish);
         const origin = 'IA';
         const hasTime = Boolean(dish.tiempo);
         const confidenceBase = hasTime ? 0.85 : origin === 'PDF' ? 0.65 : 0.45;
@@ -4359,38 +3435,12 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         const explicitProcesses = Array.isArray(dish.procesos)
           ? dish.procesos.filter(Boolean)
           : [];
-        const extraProcesses = Array.isArray(patternProfile?.extraProcesses)
-          ? patternProfile.extraProcesses
-          : [];
-        const base = [];
-        if (!explicitProcesses.includes('LAVAR')) {
-          base.push('LAVAR');
+        if (explicitProcesses.length >= 2) {
+          return buildTasksFromProcessList(explicitProcesses, dish, index, resources, suggestions);
         }
-        if (!explicitProcesses.includes('CORTAR')) {
-          base.push('CORTAR');
-        }
-        let processes = normalizeProcessList(base.concat(explicitProcesses, extraProcesses));
-        if (!processes.includes('EMPLATAR')) {
-          processes.push('EMPLATAR');
-        }
-        if (processes.length < 4) {
-          const insertAt = Math.max(0, processes.length - 1);
-          processes.splice(insertAt, 0, 'MEZCLAR');
-        }
-        if (explicitProcesses.length) {
-          return buildTasksFromProcessList(processes, dish, index, resources, suggestions);
-        }
-        const ingredientCount = Array.isArray(dish.ingredientes) ? dish.ingredientes.length : 0;
-        const paxValue = sanitizeInt(dish.pax, 0);
-        const extraLoad = Math.min(10, Math.floor(ingredientCount / 6) * 2) + (paxValue >= 8 ? 2 : 0);
-
-        const dishResourceHints = Array.isArray(dish.recursos_hint) ? dish.recursos_hint : [];
-        const mergedResourceHints = dishResourceHints.concat(
-          Array.isArray(patternProfile?.resourceHints) ? patternProfile.resourceHints : []
-        );
 
         const addTask = (id, name, phase, duration, process, minLevel, deps, resourceOverride) => {
-          let resourceIdValue =
+          const resourceIdValue =
             resourceOverride !== undefined
               ? resourceOverride
               : resourceForProcess(
@@ -4401,15 +3451,6 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
                 id,
                 dishName
               );
-          if (!resourceIdValue && mergedResourceHints.length) {
-            const catalog = getEffectiveResourcesCatalog(resources);
-            const hintKey = mergedResourceHints
-              .map((hint) => normalizeResourceName(hint))
-              .find((key) => catalog.byTypeKey[key] && catalog.byTypeKey[key].length);
-            if (hintKey) {
-              resourceIdValue = catalog.byTypeKey[hintKey][0].id;
-            }
-          }
           tasks.push(
             buildTask(
               id,
@@ -4436,12 +3477,11 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         const washDuration = estimateDuration('LAVAR', baseTime, dishName);
         const cutDuration = estimateDuration('CORTAR', baseTime, dishName);
         const serveDuration = estimateDuration('EMPLATAR', baseTime, dishName);
-        const patternId = patternProfile?.id || detectDishPattern(dishName);
-        const mainProcess = inferPrimaryProcessForDish(dishName, patternProfile || patternId);
+        const mainProcess = inferPrimaryProcessForDish(dishName, detectDishPattern(dishName));
         const mainVerb = processToVerb(mainProcess, dishName);
         let mainTaskId = prepId;
 
-        if (patternId === 'CROQUETAS') {
+        if (detectDishPattern(dishName) === 'CROQUETAS') {
           uncertainties.push(`Croquetas: se asume bechamel, formado y fritura casera.`);
           addTask(washId, `lavar ingredientes de ${dishName}`, 'MISE_EN_PLACE', washDuration, 'LAVAR', 1, []);
           addTask(cutId, `picar ingredientes de ${dishName}`, 'MISE_EN_PLACE', cutDuration, 'CORTAR', 1, [washId]);
@@ -4503,7 +3543,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             tipo: 'CROQUETAS_TIPO',
             plato: dishName
           });
-        } else if (patternId === 'EMPANADILLAS') {
+        } else if (detectDishPattern(dishName) === 'EMPANADILLAS') {
           uncertainties.push(`Empanadillas: se asume fritura, confirmar metodo.`);
           addTask(washId, `lavar ingredientes de ${dishName}`, 'MISE_EN_PLACE', washDuration, 'LAVAR', 1, []);
           addTask(cutId, `cortar relleno de ${dishName}`, 'MISE_EN_PLACE', cutDuration, 'CORTAR', 1, [washId]);
@@ -4545,7 +3585,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             tipo: 'METODO',
             plato: dishName
           });
-        } else if (patternId === 'TORTILLA') {
+        } else if (detectDishPattern(dishName) === 'TORTILLA') {
           uncertainties.push(`Tortilla: se asume pochar y cuajar en sarten.`);
           addTask(washId, `lavar ingredientes de ${dishName}`, 'MISE_EN_PLACE', washDuration, 'LAVAR', 1, []);
           addTask(cutId, `cortar ingredientes de ${dishName}`, 'MISE_EN_PLACE', cutDuration, 'CORTAR', 1, [washId]);
@@ -4569,7 +3609,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             [pocharId]
           );
           addTask(serveId, `emplatar ${dishName}`, 'SERVICIO', serveDuration, 'EMPLATAR', 1, [prepId]);
-        } else if (patternId === 'CREMA') {
+        } else if (detectDishPattern(dishName) === 'CREMA') {
           uncertainties.push(`Crema/sopa: se asume coccion + triturado.`);
           addTask(washId, `lavar ingredientes de ${dishName}`, 'MISE_EN_PLACE', washDuration, 'LAVAR', 1, []);
           addTask(cutId, `cortar ingredientes de ${dishName}`, 'MISE_EN_PLACE', cutDuration, 'CORTAR', 1, [washId]);
@@ -4604,7 +3644,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           );
           addTask(serveId, `emplatar ${dishName}`, 'SERVICIO', serveDuration, 'EMPLATAR', 1, [prepId]);
           mainTaskId = cocerId;
-        } else if (patternId === 'RISOTTO') {
+        } else if (detectDishPattern(dishName) === 'RISOTTO') {
           uncertainties.push(`Risotto: se asume sofrito + coccion con caldo.`);
           addTask(washId, `lavar ingredientes de ${dishName}`, 'MISE_EN_PLACE', washDuration, 'LAVAR', 1, []);
           addTask(cutId, `cortar ingredientes de ${dishName}`, 'MISE_EN_PLACE', cutDuration, 'CORTAR', 1, [washId]);
@@ -4639,7 +3679,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           );
           addTask(serveId, `emplatar ${dishName}`, 'SERVICIO', serveDuration, 'EMPLATAR', 1, [prepId]);
           mainTaskId = caldoId;
-        } else if (patternId === 'PASTA') {
+        } else if (detectDishPattern(dishName) === 'PASTA') {
           uncertainties.push(`Pasta: se asume coccion en agua y mezclado final.`);
           addTask(washId, `lavar ingredientes de ${dishName}`, 'MISE_EN_PLACE', washDuration, 'LAVAR', 1, []);
           addTask(cutId, `cortar ingredientes de ${dishName}`, 'MISE_EN_PLACE', cutDuration, 'CORTAR', 1, [washId]);
@@ -4674,7 +3714,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           );
           addTask(serveId, `emplatar ${dishName}`, 'SERVICIO', serveDuration, 'EMPLATAR', 1, [prepId]);
           mainTaskId = hervirId;
-        } else if (patternId === 'AL_HORNO') {
+        } else if (detectDishPattern(dishName) === 'AL_HORNO') {
           uncertainties.push(`Al horno: se asume sazonado + horneado + reposo.`);
           addTask(washId, `lavar ingredientes de ${dishName}`, 'MISE_EN_PLACE', washDuration, 'LAVAR', 1, []);
           addTask(
@@ -4706,7 +3746,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             [prepId]
           );
           addTask(serveId, `emplatar ${dishName}`, 'SERVICIO', serveDuration, 'EMPLATAR', 1, [reposoId]);
-        } else if (patternId === 'FLAN') {
+        } else if (detectDishPattern(dishName) === 'FLAN') {
           uncertainties.push(`Flan: se asume preparado casero al bano maria.`);
           addTask(washId, `lavar utensilios de ${dishName}`, 'MISE_EN_PLACE', washDuration, 'LAVAR', 1, []);
           addTask(
@@ -4872,30 +3912,10 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           : deepClone(DEFAULT_PLAN.equipo || DEFAULT_PLAN.team || []);
         const resourceWarnings = [];
 
-        if (state && state.debugEnabled) {
-          console.debug('[buildPlanFromDraft] platos', Array.isArray(draft.platos) ? draft.platos.length : 0);
-        }
         draft.platos.forEach((dish, index) => {
-          const safeDish = dish && dish.nombre
-            ? dish
-            : { ...dish, nombre: dish?.nombre || `Plato ${index + 1}` };
-          const hasProcesses = Array.isArray(safeDish.procesos) && safeDish.procesos.length;
-          let result = null;
-          try {
-            result = hasProcesses
-              ? buildTasksFromProcessList(safeDish.procesos, safeDish, index, resources, resourceWarnings)
-              : buildTasksForDish(safeDish, index, resources, resourceWarnings);
-          } catch (error) {
-            if (state && state.debugEnabled) {
-              console.warn('[buildPlanFromDraft] Error generando tareas', error);
-            }
-            result = buildTasksForDish(safeDish, index, resources, resourceWarnings);
-          }
-          if (!result || !Array.isArray(result.tasks) || !result.tasks.length) {
-            result = buildTasksForDish(safeDish, index, resources, resourceWarnings);
-          }
-          tasks.push(...(result.tasks || []));
-          questions.push(...(result.questions || []));
+          const result = buildTasksForDish(dish, index, resources, resourceWarnings);
+          tasks.push(...result.tasks);
+          questions.push(...result.questions);
           if (result.guidedQuestions?.length) {
             guidedQuestions.push(...result.guidedQuestions);
           }
@@ -4905,18 +3925,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           if (result.estilos?.length) {
             result.estilos.forEach((style) => styleSet.add(style));
           }
-          if (state && state.debugEnabled) {
-            console.debug('[buildPlanFromDraft] plato', {
-              nombre: safeDish?.nombre || '',
-              procesos: Array.isArray(safeDish?.procesos) ? safeDish.procesos.length : 0,
-              tasks: result.tasks?.length || 0,
-              usesProcesos: hasProcesses
-            });
-          }
         });
-        if (state && state.debugEnabled) {
-          console.debug('[buildPlanFromDraft] total tasks', tasks.length);
-        }
 
         if (!tasks.length) {
           tasks.push(...(DEFAULT_PLAN.tareas || DEFAULT_PLAN.tasks || []));
@@ -5118,70 +4127,6 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           return results;
         }
 
-        let parserFixturesRequested = false;
-
-        function ensureParserFixturesLoaded() {
-          if (parserFixturesRequested || typeof document === 'undefined') {
-            return;
-          }
-          if (window.PARSER_FIXTURES && Array.isArray(window.PARSER_FIXTURES)) {
-            return;
-          }
-          parserFixturesRequested = true;
-          try {
-            const script = document.createElement('script');
-            script.src = 'parser_fixtures.js';
-            script.async = true;
-            script.onload = () => {
-              if (state.debugEnabled) {
-                updateDebugText();
-              }
-            };
-            script.onerror = () => {
-              if (state.debugEnabled) {
-                console.warn('[parser fixtures] no se pudo cargar parser_fixtures.js');
-              }
-            };
-            document.head.appendChild(script);
-          } catch (error) {
-            if (state.debugEnabled) {
-              console.warn('[parser fixtures] error al cargar fixtures', error);
-            }
-          }
-        }
-
-        function runParserSmokeTests() {
-          ensureParserFixturesLoaded();
-          const fixtures = Array.isArray(window.PARSER_FIXTURES) ? window.PARSER_FIXTURES : [];
-          const results = [];
-          if (!fixtures.length) {
-            results.push({ id: 'fixtures', ok: false, detail: 'sin fixtures' });
-            return results;
-          }
-          fixtures.forEach((fixture) => {
-            let ok = true;
-            let detail = '';
-            try {
-              const menuIR = buildMenuIRFromRawText(fixture.text || '', { source: 'fixture', id: fixture.id });
-              const built = menuIRToPlan(menuIR, [], []);
-              const planBuilt = built?.plan || null;
-              const plateCount = menuIR?.platos?.length || 0;
-              const taskCount = planBuilt?.tareas?.length || 0;
-              const phases = new Set((planBuilt?.tareas || []).map((task) => task.fase));
-              const expect = fixture.expect || {};
-              const platesOk = plateCount >= (expect.platesMin || 1);
-              const tasksOk = taskCount >= (expect.tasksMin || 1);
-              const phasesOk = phases.size >= (expect.phasesMin || 1);
-              ok = platesOk && tasksOk && phasesOk;
-              detail = `platos ${plateCount} tareas ${taskCount} fases ${phases.size}`;
-            } catch (error) {
-              ok = false;
-              detail = error && error.message ? error.message : 'error';
-            }
-            results.push({ id: fixture.id, ok, detail });
-          });
-          return results;
-        }
         function updateDebugText() {
           const show = debugToggleEl.checked;
           debugPanelEl.classList.toggle('show', show);
@@ -5193,20 +4138,13 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             return;
           }
           const smoke = runSmokeTests();
-          const parserSmoke = runParserSmokeTests();
           if (smokeResultsEl) {
-            const lines = smoke
+            smokeResultsEl.textContent = smoke
               .map(
                 (item) =>
                   `${item.ok ? '[OK]' : '[FAIL]'} ${item.label}${item.detail ? `: ${item.detail}` : ''}`
-              );
-            if (parserSmoke && parserSmoke.length) {
-              lines.push('--- PARSER FIXTURES ---');
-              parserSmoke.forEach((item) => {
-                lines.push(`${item.ok ? '[OK]' : '[FAIL]'} ${item.id}${item.detail ? `: ${item.detail}` : ''}`);
-              });
-            }
-            smokeResultsEl.textContent = lines.join('\n');
+              )
+              .join('\n');
           }
           const lines = menuDraft?.lines || [];
           const preview = lines
@@ -5214,18 +4152,12 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             .map((line, index) => `${String(index + 1).padStart(2, '0')}: ${line}`)
             .join('\n');
           const draftJson = menuDraft ? JSON.stringify(menuDraft, null, 2) : '{}';
-          const menuIrJson = appState.menuIR ? JSON.stringify(appState.menuIR, null, 2) : '{}';
-          const menuIrDiag = appState.menuIR?.parseDiagnostics || {};
           const diagnosticsJson = JSON.stringify(state.diagnostics || emptyDiagnostics(), null, 2);
           const invariantState = state.invariants || { errors: [], warnings: [] };
           debugTextEl.value = [
             `CHARS: ${(pdfState.text || '').length}`,
             `LINES: ${lines.length}`,
             `PLATOS: ${menuDraft?.platos?.length || 0}`,
-            `IR_PLATOS: ${appState.menuIR?.platos?.length || 0}`,
-            `IR_PROCESOS: ${menuIrDiag.processCount || 0}`,
-            `IR_INFERIDOS: ${menuIrDiag.inferredCount || 0}`,
-            `IR_CONF: ${Number(menuIrDiag.confidenceAvg || 0).toFixed(2)}`,
             `TAREAS: ${plan?.tareas?.length || 0}`,
             `SIN_ASIGNAR: ${state.diagnostics?.unassignedTasks || 0}`,
             `DURACIONES_INFERIDAS: ${state.diagnostics?.missingDurations || 0}`,
@@ -5237,13 +4169,10 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             preview || 'Sin lineas',
             '--- MENUDRAFT ---',
             draftJson,
-            '--- MENU_IR ---',
-            menuIrJson,
             '--- DIAGNOSTICS ---',
             diagnosticsJson
           ].join('\n');
         }
-
       function validatePlan(planToCheck) {
         const errors = [];
         const warnings = [];
@@ -5576,150 +4505,24 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         }
         return { text: fullText.trim(), error: null };
       }
-            function processMenuText(text) {
-        const normalizedText = normalizeText(text);
-        const normalizedForMatch = normalizeToken(normalizedText);
-        const { lines, baseLineCount, fallbackUsed } = normalizeLines(normalizedText);
-        const cleanedLines = stripRepeatedHeaders(lines);
-        const sectionItems = cleanedLines.map((line) => ({
-          text: line,
-          notes: isTrashLine(line) ? ['trash'] : []
-        }));
-        const effectiveLines = cleanedLines.filter((line) => !isTrashLine(line));
-        const parseLines = effectiveLines.length ? effectiveLines : cleanedLines;
-        let draft = null;
-        let result = null;
-        let menuIR = null;
 
+      function processMenuText(text) {
         if (state.debugEnabled) {
           console.debug('[processMenuText] start', { chars: (text || '').length });
         }
-
-        try {
-          menuIR = buildMenuIRFromRawText(text, appState.menuRawTextSource || null);
-          appState.menuIR = menuIR;
-          if (state.debugEnabled && menuIR) {
-            console.debug('[menuIR] platos', menuIR.platos?.length || 0, menuIR.parseDiagnostics || {});
-          }
-        } catch (error) {
-          if (state.debugEnabled) {
-            console.warn('[processMenuText] Error buildMenuIRFromRawText', error);
-          }
-          appState.menuIR = null;
-        }
-
-        if (menuIR) {
-          try {
-            const built = menuIRToPlan(menuIR, plan?.recursos || [], plan?.equipo || []);
-            draft = built.draft;
-            result = { plan: built.plan, suggestions: built.suggestions || [] };
-          } catch (error) {
-            if (state.debugEnabled) {
-              console.warn('[processMenuText] Error menuIRToPlan', error);
-            }
-          }
-        }
-
-        if (!result) {
-          try {
-            draft = parseMenuDraft(text);
-            if (state.debugEnabled && draft && Array.isArray(draft.platos)) {
-              const sample = draft.platos.slice(0, 2).map((plato) => ({
-                nombre: plato?.nombre || '',
-                procesos: plato?.procesos || [],
-                recursos_hint: plato?.recursos_hint || [],
-                pax: plato?.pax || null,
-                ingredientes: Array.isArray(plato?.ingredientes) ? plato.ingredientes.length : 0
-              }));
-              console.debug('[processMenuText] platos', draft.platos.length, sample);
-            }
-          } catch (error) {
-            if (state.debugEnabled) {
-              console.warn('[processMenuText] Error en parseMenuDraft', error);
-            }
-          }
-
-          if (!draft || !Array.isArray(draft.platos)) {
-            draft = {
-              rawText: text,
-              normalizedText,
-              rawTextLength: String(text || '').length,
-              normalizedTextLength: normalizedText.length,
-              platos: [],
-              comensales: detectComensales(normalizedForMatch),
-              fecha: detectDate(normalizedText),
-              recursos: parseResourcesFromText(normalizedForMatch),
-              equipo: parseTeamFromLines(parseLines),
-              lineCount: parseLines.length,
-              baseLineCount,
-              fallbackUsed,
-              lines
-            };
-          }
-
-          try {
-            result = buildPlanFromDraft(draft);
-          } catch (error) {
-            if (state.debugEnabled) {
-              console.warn('[processMenuText] Error en buildPlanFromDraft', error);
-            }
-            const fallbackPlan = normalizePlan(DEFAULT_PLAN);
-            fallbackPlan.meta = fallbackPlan.meta || {};
-            fallbackPlan.meta.titulo = fallbackPlan.meta.titulo || 'Menu importado';
-            result = { plan: fallbackPlan, suggestions: [] };
-          }
-        }
-
+        const draft = parseMenuDraft(text);
+        const result = buildPlanFromDraft(draft);
         draft.suggestions = result.suggestions || [];
         draft.incertidumbres_detectadas = result.plan.incertidumbres_detectadas || [];
         draft.preguntas_guiadas = result.plan.preguntas_guiadas || [];
         draft.advertencias_de_recursos = result.plan.advertencias_de_recursos || [];
         draft.resumen_estilos_aplicados = result.plan.resumen_estilos_aplicados || [];
-
-        const minTasks = Array.isArray(draft.platos) ? draft.platos.length * 3 : 0;
-        const totalTasks = result.plan?.tareas?.length || 0;
-        if (minTasks > 0 && totalTasks < minTasks) {
-          const warning = `Tareas insuficientes: ${totalTasks} para ${draft.platos.length} platos.`;
-          result.plan.incertidumbres_detectadas = Array.from(
-            new Set([...(result.plan.incertidumbres_detectadas || []), warning])
-          );
-          draft.incertidumbres_detectadas = Array.from(
-            new Set([...(draft.incertidumbres_detectadas || []), warning])
-          );
-        }
-        if (state.debugEnabled) {
-          const sampleTasks = (result.plan?.tareas || []).slice(0, 5).map((task) => ({
-            nombre: task?.nombre || '',
-            plato: task?.plato || '',
-            proceso: task?.proceso || '',
-            fase: task?.fase || '',
-            recurso: task?.recurso_id || ''
-          }));
-          console.debug('[processMenuText] tareas', { total: totalTasks, sample: sampleTasks });
-        }
-
-        const summary = draft.platos && draft.platos.length
-          ? (result.plan?.incertidumbres_detectadas || []).some((item) =>
-            String(item || '').includes('Tareas insuficientes')
-          )
-            ? 'Menu interpretado (tareas insuficientes).'
-            : 'Menu interpretado.'
-          : 'Menu interpretado (sin platos detectados).';
+        const summary = 'Menu interpretado.';
         setPlan(result.plan, draft, summary, result.plan.preguntas_rapidas);
-
-        try {
-          const baseName = deriveRecipeName(result.plan?.name || result.plan?.meta?.titulo || pdfState.name || '');
-          const recipe = addRecipe(createRecipeFromPlan(plan, { name: baseName }));
-          if (recipe && recipe.id) {
-            state.activeRecipeId = recipe.id;
-            localStorage.setItem(RECIPE_ACTIVE_KEY, recipe.id);
-          }
-        } catch (error) {
-          if (state.debugEnabled) {
-            console.warn('[processMenuText] Error guardando receta', error);
-          }
-        }
-
+        const baseName = deriveRecipeName(result.plan?.name || result.plan?.meta?.titulo || pdfState.name || '');
+        const recipe = addRecipe(createRecipeFromPlan(plan, { name: baseName }));
+        state.activeRecipeId = recipe.id;
+        localStorage.setItem(RECIPE_ACTIVE_KEY, recipe.id);
         goToView('prep', { replace: true });
         updateDebugText();
         if (state.debugEnabled) {
@@ -5731,7 +4534,8 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         }
         return draft;
       }
-async function handlePdfFile(file) {
+
+      async function handlePdfFile(file) {
         if (!file) {
           return;
         }
@@ -6584,13 +5388,13 @@ async function handlePdfFile(file) {
       function startPhaseCountdown() {
         const errorCount = (state.issues || []).filter((issue) => issue.severity === 'error').length;
         if (errorCount) {
-          setText(planStatusEl, `Hay ${errorCount} problemas que requieren decision.`);
+          planStatusEl.textContent = `Hay ${errorCount} problemas que requieren decision.`;
           state.issuesOpen = true;
           renderValidation();
           return;
         }
         if (!state.approved) {
-          setText(planStatusEl, 'Revisa automaticamente antes de iniciar.');
+          planStatusEl.textContent = 'Revisa automaticamente antes de iniciar.';
           return;
         }
         if (state.phaseStatus === 'running' || state.phaseStatus === 'prestart') {
@@ -6615,7 +5419,6 @@ async function handlePdfFile(file) {
 
       function togglePausePhase() {
         if (!state.approved) {
-          setText(planStatusEl, 'Plan sin aprobar.');
           return;
         }
         if (state.phaseStatus === 'paused') {
@@ -6635,7 +5438,6 @@ async function handlePdfFile(file) {
 
       function finalizePhase() {
         if (!state.approved) {
-          setText(planStatusEl, 'Plan sin aprobar.');
           return;
         }
         advancePhase(false);
@@ -6802,34 +5604,16 @@ async function handlePdfFile(file) {
           const unassignedTasks = planToCheck?.tareas
             ? planToCheck.tareas.filter((task) => !task.asignado_a_id).length
             : 0;
-          const knownTypeKeys = new Set(Object.keys(RESOURCE_LABELS || {}));
-          const addMissingType = (value) => {
-            const typeKey = normalizeResourceName(value);
-            if (!typeKey || !knownTypeKeys.has(typeKey)) {
-              return;
+          const addMissing = (value) => {
+            const label = normalizeResourceLabel(value);
+            if (label) {
+              missingResources.add(label);
             }
-            missingResources.add(RESOURCE_LABELS[typeKey] || typeKey);
           };
-
-          (planToCheck?.tareas || []).forEach((task) => {
-            if (!task) {
-              return;
-            }
-            const assignedId = task.recurso_id || task.resourceId || null;
-            const explicitType = normalizeResourceName(task.resourceTypeKey || '');
-            if (explicitType && !assignedId) {
-              addMissingType(explicitType);
-              return;
-            }
-            const expected = getExpectedResourceForProcess(task.proceso, planToCheck?.recursos || []);
-            if (expected.needs && !assignedId) {
-              addMissingType(expected.typeKey);
-            }
-          });
 
           (planToCheck?.preguntas_guiadas || []).forEach((question) => {
             if (question.tipo === 'ADD_RESOURCE') {
-              addMissingType(question.recurso_nombre || question.recurso_id || question.recurso_tipo);
+              addMissing(question.recurso_nombre || question.recurso_id);
             }
           });
 
@@ -6840,7 +5624,7 @@ async function handlePdfFile(file) {
           hintSources.forEach((message) => {
             const resource = parseMissingResourceFromMessage(message);
             if (resource) {
-              addMissingType(resource);
+              addMissing(resource);
             }
           });
 
@@ -7320,7 +6104,7 @@ async function handlePdfFile(file) {
             severity: 'warn',
             title: 'Tareas sin asignar',
             meta: `${diagnostics.unassignedTasks} tareas`,
-            action: 'validation-assign',
+            action: 'validation-auto-assign',
             label: 'Repartir tareas'
           });
         }
@@ -7342,6 +6126,7 @@ async function handlePdfFile(file) {
             label: 'Editar manualmente'
           });
         }
+
         if (!cards.length) {
           prepIssuesGridEl.innerHTML = '';
           if (prepIssuesSectionEl) {
@@ -7458,10 +6243,6 @@ async function handlePdfFile(file) {
           filterValue === 'ALL'
             ? recipes
             : recipes.filter((recipe) => (recipe.tags || []).includes(filterValue));
-        const filterWrap = recipeFilterEl.closest('.library-filters');
-        if (filterWrap) {
-          filterWrap.style.display = visibleRecipes.length ? 'flex' : 'none';
-        }
         if (!visibleRecipes.length) {
           recipeEmptyEl.textContent = 'Sin recetas guardadas.';
         } else {
@@ -7496,9 +6277,7 @@ async function handlePdfFile(file) {
             return;
           }
           if (action === 'add-resources') {
-            assignResourcesByHeuristic({ silent: true });
             addSuggestedResources();
-            render();
             return;
           }
           if (action === 'review') {
@@ -7659,20 +6438,20 @@ async function handlePdfFile(file) {
           });
         }
 
-      function applyQuestionAnswer(questionId, value) {
-        const allQuestions = (plan.preguntas_rapidas || []).concat(plan.preguntas_guiadas || []);
-        const question = allQuestions.find((item) => item.id === questionId);
-        if (!question) {
-          return;
-        }
-        questionAnswers[questionId] = value;
-        if (question.tipo === 'ADD_RESOURCE') {
-          applyAddResourceAnswer(question, value);
-          plan.preguntas_guiadas = prioritizeQuestions(plan.preguntas_guiadas);
-          validateAndStore();
-          calculatePlan({ silent: true });
-          render();
-          return;
+        function applyQuestionAnswer(questionId, value) {
+          const allQuestions = (plan.preguntas_rapidas || []).concat(plan.preguntas_guiadas || []);
+          const question = allQuestions.find((item) => item.id === questionId);
+          if (!question) {
+            return;
+          }
+          questionAnswers[questionId] = value;
+          if (question.tipo === 'ADD_RESOURCE') {
+            applyAddResourceAnswer(question, value);
+            plan.preguntas_guiadas = prioritizeQuestions(plan.preguntas_guiadas);
+            validateAndStore();
+            calculatePlan({ silent: true });
+            render();
+            return;
         }
         if (question.tipo === 'CROQUETAS_TIPO') {
           const dishName = question.plato;
@@ -7685,8 +6464,22 @@ async function handlePdfFile(file) {
             }
             if (!plan.tareas.some((task) => task.plato === dishName && task.proceso === 'EMPLATAR')) {
               addQuickTaskForDish(dishName, `emplatar ${dishName}`, 'SERVICIO', 'EMPLATAR', 1);
-            }
           }
+        }
+
+        function addSuggestedResources() {
+          const questions = (plan.preguntas_guiadas || []).filter((item) => item.tipo === 'ADD_RESOURCE');
+          if (!questions.length) {
+            return;
+          }
+          questions.forEach((question) => {
+            questionAnswers[question.id] = 'SI';
+            applyAddResourceAnswer(question, 'SI');
+          });
+          plan.preguntas_guiadas = prioritizeQuestions(plan.preguntas_guiadas);
+          validateAndStore();
+          calculatePlan({ silent: true });
+        }
           if (dishName && value === 'CASERAS') {
             if (!plan.tareas.some((task) => task.plato === dishName && task.proceso === 'LAVAR')) {
               addQuickTaskForDish(dishName, `lavar ingredientes de ${dishName}`, 'MISE_EN_PLACE', 'LAVAR', 1);
@@ -7762,12 +6555,12 @@ async function handlePdfFile(file) {
             task.autoAssigned = false;
             return;
           }
-          if (/^\d+$/.test(value)) {
-            task.duracion_min = parseInt(value, 10);
-            task.duracion_inferida = false;
-            task.autoAssigned = false;
-            return;
-          }
+            if (/^\d+$/.test(value)) {
+              task.duracion_min = parseInt(value, 10);
+              task.duracion_inferida = false;
+              task.autoAssigned = false;
+              return;
+            }
           const resource = normalizeResourceId(value);
           if (resource && !recursoById[resource]) {
             queueAddResourceQuestion(resource, plan.preguntas_guiadas, taskId, task.plato);
@@ -7788,19 +6581,6 @@ async function handlePdfFile(file) {
         render();
       }
 
-      function addSuggestedResources() {
-        const questions = (plan.preguntas_guiadas || []).filter((item) => item.tipo === 'ADD_RESOURCE');
-        if (!questions.length) {
-          return;
-        }
-        questions.forEach((question) => {
-          questionAnswers[question.id] = 'SI';
-          applyAddResourceAnswer(question, 'SI');
-        });
-        plan.preguntas_guiadas = prioritizeQuestions(plan.preguntas_guiadas);
-        validateAndStore();
-        calculatePlan({ silent: true });
-      }
       function renderAssignments() {
         const incompleteMap = new Map();
         let incompleteCount = 0;
@@ -8142,31 +6922,6 @@ async function handlePdfFile(file) {
             setTaskResource(task, expected.resourceId);
             updateTaskLabels(task, plan.recursos);
             count += 1;
-            return;
-          }
-          if (!expected.needs) {
-            const pref = PROCESS_RESOURCE_PREF[expected.processKey];
-            if (Array.isArray(pref) && pref.length && pref.every((item) => !item)) {
-              return;
-            }
-            const dishHint = task.plato ? inferResourceForDish(task.plato) : null;
-            if (dishHint) {
-              const candidates = effective.byTypeKey[dishHint] || [];
-              const available =
-                candidates.find((resource) => sanitizeInt(resource.capacidad, 0) > 0) || candidates[0];
-              if (available) {
-                setTaskResource(task, available.id);
-                updateTaskLabels(task, plan.recursos);
-                count += 1;
-                return;
-              }
-            }
-            if (effective.list.length) {
-              const available = effective.list.find((resource) => sanitizeInt(resource.capacidad, 0) > 0) || effective.list[0];
-              setTaskResource(task, available.id);
-              updateTaskLabels(task, plan.recursos);
-              count += 1;
-            }
           }
         });
         if (count) {
@@ -8293,11 +7048,11 @@ async function handlePdfFile(file) {
         }
         const errorCount = (state.issues || []).filter((issue) => issue.severity === 'error').length;
         if (errorCount) {
-          setText(planStatusEl, `Hay ${errorCount} problemas que requieren decision.`);
+          planStatusEl.textContent = `Hay ${errorCount} problemas que requieren decision.`;
           return;
         }
         if (!state.approved) {
-          setText(planStatusEl, 'Revisa automaticamente antes de iniciar.');
+          planStatusEl.textContent = 'Revisa automaticamente antes de iniciar.';
           return;
         }
         state.uiMode = 'kitchen';
@@ -8739,104 +7494,88 @@ async function handlePdfFile(file) {
           })
           .join('');
       }
+
       function renderHeader() {
-        try {
-          if (planTitleEl) {
-            if (state.screen === 'library') {
-              planTitleEl.textContent = 'BIBLIOTECA';
-            } else {
-              planTitleEl.textContent = state.uiMode === 'prep' ? 'PREPARACION' : 'COCINA';
-            }
-          }
+        if (planTitleEl) {
           if (state.screen === 'library') {
-            return;
-          }
-          if (!plan) {
-            return;
-          }
-          const activePhase = getActivePhaseId();
-          if (activePhaseEl) {
-            activePhaseEl.textContent = phaseLabel(activePhase);
-            activePhaseEl.classList.add('status-badge', 'phase');
-          }
-          if (phaseStateEl) {
-            if (!state.approved) {
-              phaseStateEl.textContent = 'Plan sin aprobar';
-            } else if (state.phaseStatus === 'idle') {
-              phaseStateEl.textContent = 'En espera';
-            } else if (state.phaseStatus === 'prestart') {
-              phaseStateEl.textContent = 'Pre-start';
-            } else if (state.phaseStatus === 'paused') {
-              phaseStateEl.textContent = 'Pausado';
-            } else if (state.phaseStatus === 'running') {
-              phaseStateEl.textContent = 'En curso';
-            } else if (state.phaseStatus === 'overdue') {
-              phaseStateEl.textContent = 'Tiempo agotado';
-            }
-          }
-
-          if (state.phaseStatus === 'prestart' || state.pausedFrom === 'prestart') {
-            if (phaseTimerEl) {
-              phaseTimerEl.textContent = formatClock(state.prestartRemaining);
-            }
-            if (phaseTimerNoteEl) {
-              phaseTimerNoteEl.textContent = state.phaseStatus === 'paused' ? 'Pausado' : 'Cuenta atras inicio';
-            }
+            planTitleEl.textContent = 'BIBLIOTECA';
           } else {
-            if (phaseTimerEl) {
-              phaseTimerEl.textContent = formatClock(state.phaseRemaining);
-            }
-            if (phaseTimerNoteEl) {
-              phaseTimerNoteEl.textContent =
-                state.phaseStatus === 'overdue'
-                  ? 'Tiempo agotado'
-                  : state.phaseStatus === 'paused'
-                  ? 'Pausado'
-                  : 'Cuenta atras fase';
-            }
+            planTitleEl.textContent = state.uiMode === 'prep' ? 'PREPARACION' : 'COCINA';
           }
-          if (phaseTimerWrapEl) {
-            const isServiceActive = state.phaseStatus !== 'idle';
-            phaseTimerWrapEl.classList.toggle('hidden', !isServiceActive);
-          }
+        }
+        if (state.screen === 'library') {
+          return;
+        }
+        if (!plan) {
+          return;
+        }
+        const activePhase = getActivePhaseId();
+        activePhaseEl.textContent = phaseLabel(activePhase);
+        activePhaseEl.classList.add('status-badge', 'phase');
+        if (!state.approved) {
+          phaseStateEl.textContent = 'Plan sin aprobar';
+        } else if (state.phaseStatus === 'idle') {
+          phaseStateEl.textContent = 'En espera';
+        } else if (state.phaseStatus === 'prestart') {
+          phaseStateEl.textContent = 'Pre-start';
+        } else if (state.phaseStatus === 'paused') {
+          phaseStateEl.textContent = 'Pausado';
+        } else if (state.phaseStatus === 'running') {
+          phaseStateEl.textContent = 'En curso';
+        } else if (state.phaseStatus === 'overdue') {
+          phaseStateEl.textContent = 'Tiempo agotado';
+        }
 
-          const errorCount = (state.issues || []).filter((issue) => issue.severity === 'error').length;
-          const warningCount = (state.issues || []).filter((issue) => issue.severity === 'warning').length;
-          if (healthDetailsBtn) {
-            const hasIssues = errorCount > 0 || warningCount > 0;
-            healthDetailsBtn.disabled = !hasIssues;
-            healthDetailsBtn.title = hasIssues ? '' : 'Sin problemas detectados';
-          }
-          if (planHealthEl) {
-            planHealthEl.className = 'status-badge health';
-            const isRunning = ['running', 'prestart', 'paused', 'overdue'].includes(state.phaseStatus);
-            if (errorCount > 0) {
-              planHealthEl.classList.add('error');
-              planHealthEl.textContent = 'BLOQUEADO (' + errorCount + ')';
-            } else if (isRunning) {
-              if (warningCount > 0) {
-                planHealthEl.classList.add('warn');
-                planHealthEl.textContent = 'AVISOS (' + warningCount + ')';
-              } else {
-                planHealthEl.classList.add('ok');
-                planHealthEl.textContent = 'LISTO';
-              }
-            } else if (warningCount > 0) {
+        if (state.phaseStatus === 'prestart' || state.pausedFrom === 'prestart') {
+          phaseTimerEl.textContent = formatClock(state.prestartRemaining);
+          phaseTimerNoteEl.textContent = state.phaseStatus === 'paused' ? 'Pausado' : 'Cuenta atras inicio';
+        } else {
+          phaseTimerEl.textContent = formatClock(state.phaseRemaining);
+          phaseTimerNoteEl.textContent =
+            state.phaseStatus === 'overdue'
+              ? 'Tiempo agotado'
+              : state.phaseStatus === 'paused'
+              ? 'Pausado'
+              : 'Cuenta atras fase';
+        }
+        if (phaseTimerWrapEl) {
+          const isServiceActive = state.phaseStatus !== 'idle';
+          phaseTimerWrapEl.classList.toggle('hidden', !isServiceActive);
+        }
+
+        const errorCount = (state.issues || []).filter((issue) => issue.severity === 'error').length;
+        const warningCount = (state.issues || []).filter((issue) => issue.severity === 'warning').length;
+        if (healthDetailsBtn) {
+          const hasIssues = errorCount > 0 || warningCount > 0;
+          healthDetailsBtn.disabled = !hasIssues;
+          healthDetailsBtn.title = hasIssues ? '' : 'Sin problemas detectados';
+        }
+        if (planHealthEl) {
+          planHealthEl.className = 'status-badge health';
+          const isRunning = ['running', 'prestart', 'paused', 'overdue'].includes(state.phaseStatus);
+          if (errorCount > 0) {
+            planHealthEl.classList.add('error');
+            planHealthEl.textContent = 'BLOQUEADO (' + errorCount + ')';
+          } else if (isRunning) {
+            if (warningCount > 0) {
               planHealthEl.classList.add('warn');
               planHealthEl.textContent = 'AVISOS (' + warningCount + ')';
             } else {
               planHealthEl.classList.add('ok');
               planHealthEl.textContent = 'LISTO';
             }
+          } else if (warningCount > 0) {
+            planHealthEl.classList.add('warn');
+            planHealthEl.textContent = 'AVISOS (' + warningCount + ')';
+          } else {
+            planHealthEl.classList.add('ok');
+            planHealthEl.textContent = 'LISTO';
           }
-        } catch (error) {
-          console.error('renderHeader failed', error);
         }
       }
-function updateControls() {
+
+      function updateControls() {
         const hasErrors = (state.issues || []).some((issue) => issue.severity === 'error');
-        const hasPlanTasks = Boolean(plan && Array.isArray(plan.tareas) && plan.tareas.length > 0);
-        const noPlan = !hasPlanTasks;
         const setButtonState = (button, disabled, reason) => {
           if (!button) {
             return;
@@ -8844,30 +7583,11 @@ function updateControls() {
           button.disabled = disabled;
           button.title = disabled && reason ? reason : '';
         };
-        if (noPlan) {
-          const reason = 'No hay un plan activo';
-          setButtonState(bulkResolveBtn, true, reason);
-          setButtonState(rebalanceTeamBtn, true, reason);
-          setButtonState(calcPlanBtn, true, reason);
-          setButtonState(approvePlanBtn, true, reason);
-          setButtonState(startPhaseBtn, true, reason);
-          setButtonState(skipPrestartBtn, true, reason);
-          setButtonState(prevPhaseBtn, true, reason);
-          setButtonState(nextPhaseBtn, true, reason);
-          setButtonState(autoAssignPhaseBtn, true, reason);
-          setButtonState(autoAssignAllBtn, true, reason);
-          setButtonState(unlockAssignmentsBtn, true, reason);
-          setButtonState(fixDurationsBtn, true, reason);
-          setButtonState(fixResourcesBtn, true, reason);
-          setButtonState(autoAssignBalancedBtn, true, reason);
-        }
         // Keep kitchen navigation always enabled; only block actions when plan not ready.
         if (startServiceBtn) {
-          const disabled = noPlan || hasErrors || !state.approved || state.phaseStatus !== 'idle';
+          const disabled = hasErrors || !state.approved || state.phaseStatus !== 'idle';
           const reason = hasErrors
             ? 'Bloqueado: errores en el plan'
-            : noPlan
-            ? 'No hay un plan activo'
             : !state.approved
             ? 'Plan sin aprobar'
             : state.phaseStatus !== 'idle'
@@ -8907,13 +7627,9 @@ function updateControls() {
           const hasIssues = (state.issues || []).length > 0;
           setButtonState(healthDetailsBtn, !hasIssues, hasIssues ? '' : 'Sin problemas');
         }
-        setButtonState(
-          skipPrestartBtn,
-          noPlan || state.phaseStatus !== 'prestart',
-          noPlan ? 'No hay un plan activo' : 'No hay pre-start activo'
-        );
-        setButtonState(prevPhaseBtn, noPlan || !state.approved, noPlan ? 'No hay un plan activo' : 'Plan sin aprobar');
-        setButtonState(nextPhaseBtn, noPlan || !state.approved, noPlan ? 'No hay un plan activo' : 'Plan sin aprobar');
+        setButtonState(skipPrestartBtn, state.phaseStatus !== 'prestart', 'No hay pre-start activo');
+        setButtonState(prevPhaseBtn, !state.approved, 'Plan sin aprobar');
+        setButtonState(nextPhaseBtn, !state.approved, 'Plan sin aprobar');
       }
 
       function updateFinishScreen() {
@@ -9248,69 +7964,9 @@ function updateControls() {
         window.updatePdfStatus = updatePdfStatus;
         window.setUIMode = setUIMode;
         window.goToView = goToView;
-        window.assignResourcesByHeuristic = assignResourcesByHeuristic;
-        window.addSuggestedResources = addSuggestedResources;
-        window.fillMissingDurations = fillMissingDurations;
-        window.autoAssignBalanced = autoAssignBalanced;
       }
 
       // UI bindings and initialization moved to app.js.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
