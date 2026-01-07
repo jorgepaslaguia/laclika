@@ -63,6 +63,7 @@ if (typeof window !== 'undefined') {
         FREGADERO: 'Fregadero',
         LAVAVAJILLAS: 'Lavavajillas'
       };
+      const ALLOWED_RESOURCE_TYPES = new Set(['HORNO', 'FOGONES', 'ESTACION', 'FREGADERO', 'LAVAVAJILLAS']);
 
       const RESOURCE_TYPES = {
         COCCION: 'COCCION',
@@ -560,7 +561,7 @@ if (typeof window !== 'undefined') {
           subprocesos: [
             sp('CORTAR', 'cortar ingredientes de {plato}', 'MISE_EN_PLACE', 1),
             sp('MONTAR', 'montar {plato}', 'PREELABORACION', 1),
-            sp('MEZCLAR', 'aliÃ±ar {plato}', 'PREELABORACION', 1),
+            sp('MEZCLAR', 'ali+¦ar {plato}', 'PREELABORACION', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
           procesos_obligatorios: ['MONTAR'],
@@ -576,7 +577,7 @@ if (typeof window !== 'undefined') {
           subprocesos: [
             sp('CORTAR', 'cortar tomate', 'MISE_EN_PLACE', 1),
             sp('MONTAR', 'montar {plato}', 'PREELABORACION', 1),
-            sp('MEZCLAR', 'aliÃ±ar {plato}', 'PREELABORACION', 1),
+            sp('MEZCLAR', 'ali+¦ar {plato}', 'PREELABORACION', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
           procesos_obligatorios: ['MONTAR'],
@@ -708,7 +709,7 @@ if (typeof window !== 'undefined') {
           estilos: ['FRIO', 'EMPLATADO_MINIMO', 'SALUDABLE'],
           subprocesos: [
             sp('CORTAR', 'cortar ingredientes de {plato}', 'MISE_EN_PLACE', 1),
-            sp('MEZCLAR', 'aliÃ±ar ingredientes', 'PREELABORACION', 1),
+            sp('MEZCLAR', 'ali+¦ar ingredientes', 'PREELABORACION', 1),
             sp('MONTAR', 'montar bowl', 'SERVICIO', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
@@ -988,7 +989,7 @@ if (typeof window !== 'undefined') {
           estilos: ['FRIO', 'EMPLATADO_CUIDADO'],
           subprocesos: [
             sp('CORTAR', 'cortar {plato}', 'MISE_EN_PLACE', 2),
-            sp('MEZCLAR', 'aliÃ±ar {plato}', 'PREELABORACION', 2),
+            sp('MEZCLAR', 'ali+¦ar {plato}', 'PREELABORACION', 2),
             sp('MONTAR', 'montar {plato}', 'SERVICIO', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
@@ -2192,14 +2193,28 @@ if (typeof window !== 'undefined') {
         if (!task) {
           return;
         }
-        const resolved = resourceId || null;
-        task.recurso_id = resolved;
+        let resolved = resourceId || null;
+        const catalog = getEffectiveResourcesCatalog();
+        let resource = resolved
+          ? (plan?.recursos || []).find((item) => item.id === resolved)
+          : null;
+        if (!resource && resolved) {
+          const typeKey = normalizeResourceName(resolved);
+          const candidates = (catalog.byTypeKey && catalog.byTypeKey[typeKey]) || [];
+          if (candidates.length) {
+            resource =
+              candidates.find((item) => sanitizeInt(item.capacidad, 0) > 0) ||
+              candidates[0];
+            resolved = resource ? resource.id : resolved;
+          }
+        }
+        task.recurso_id = resolved || null;
         if (resolved) {
-          const resource = (plan?.recursos || []).find((item) => item.id === resolved);
-          task.resourceTypeKey =
-            resource?.typeKey || normalizeResourceName(resource?.nombre || resolved);
+          task.resourceTypeKey = normalizeResourceName(
+            resource?.typeKey || resource?.id || resource?.nombre || resolved
+          );
         } else {
-          task.resourceTypeKey = null;
+          task.resourceTypeKey = '';
         }
       }
 
@@ -2483,7 +2498,7 @@ function normalizeLine(line) {
       function lineLooksLikeResource(line) {
         const raw = String(line || '');
         const normalized = normalizeToken(raw);
-        if (raw.includes('Â·')) {
+        if (raw.includes('-À')) {
           return true;
         }
         if (/\b(recursos|capacidad|uso)\b/.test(normalized)) {
@@ -2708,7 +2723,7 @@ function normalizeLine(line) {
         if (mapped) {
           return mapped;
         }
-        if (cleaned.includes('BAÑO') || cleaned.includes('BANO')) {
+        if (cleaned.includes('BAÐO') || cleaned.includes('BANO')) {
           return 'BANO_MARIA';
         }
         const inferred = inferProcessFromName(raw);
@@ -2726,6 +2741,12 @@ function normalizeLine(line) {
         if (!typeKey && verbSpec && verbSpec.resourceKey) {
           typeKey = verbSpec.resourceKey;
         }
+        if (typeKey) {
+          typeKey = normalizeResourceName(typeKey);
+          if (!ALLOWED_RESOURCE_TYPES.has(typeKey)) {
+            typeKey = null;
+          }
+        }
         if (!typeKey) {
           const normalized = normalizeToken(processKey);
           if (/lavar|escurrir|limpiar/.test(normalized)) {
@@ -2739,6 +2760,9 @@ function normalizeLine(line) {
           } else if (/hornear|asar|gratin/.test(normalized)) {
             typeKey = 'HORNO';
           }
+        }
+        if (typeKey && !ALLOWED_RESOURCE_TYPES.has(typeKey)) {
+          typeKey = null;
         }
         if (!typeKey) {
           return { needs: false, typeKey: null, resourceId: null, missing: false, processKey };
@@ -5118,6 +5142,60 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           return results;
         }
 
+        function runResourceSmokeTest() {
+          if (!state.debugEnabled) {
+            return null;
+          }
+          const result = { ok: true, detail: 'ok' };
+          const prevPlan = plan;
+          try {
+            const testPlan = normalizePlan({
+              name: 'Resource Smoke',
+              fases: PHASES,
+              recursos: [
+                { id: 'HORNO', nombre: 'Horno', capacidad: 1, typeKey: 'HORNO', tipo: 'COCCION' },
+                { id: 'FOGONES', nombre: 'Fogones', capacidad: 2, typeKey: 'FOGONES', tipo: 'COCCION' },
+                { id: 'ESTACION', nombre: 'Estacion', capacidad: 1, typeKey: 'ESTACION', tipo: 'PREP' },
+                { id: 'FREGADERO', nombre: 'Fregadero', capacidad: 1, typeKey: 'FREGADERO', tipo: 'LIMPIEZA' }
+              ],
+              equipo: [],
+              tareas: [
+                { id: 'T1', plato: 'Test', nombre: 'lavar', fase: 'MISE_EN_PLACE', proceso: 'LAVAR', duracion_min: 5, estado: 'PENDIENTE' },
+                { id: 'T2', plato: 'Test', nombre: 'cortar', fase: 'MISE_EN_PLACE', proceso: 'CORTAR', duracion_min: 5, estado: 'PENDIENTE' },
+                { id: 'T3', plato: 'Test', nombre: 'saltear', fase: 'PREELABORACION', proceso: 'SALTEAR', duracion_min: 8, estado: 'PENDIENTE' },
+                { id: 'T4', plato: 'Test', nombre: 'hornear', fase: 'PREELABORACION', proceso: 'HORNEAR', duracion_min: 30, estado: 'PENDIENTE' },
+                { id: 'T5', plato: 'Test', nombre: 'emplatar', fase: 'SERVICIO', proceso: 'EMPLATAR', duracion_min: 4, estado: 'PENDIENTE' },
+                { id: 'T6', plato: 'Test', nombre: 'freir', fase: 'PREELABORACION', proceso: 'FREIR', duracion_min: 6, estado: 'PENDIENTE' }
+              ]
+            });
+            plan = testPlan;
+            syncMaps();
+            assignResourcesByHeuristic({ silent: true });
+            const failures = [];
+            plan.tareas.forEach((task) => {
+              const expected = getExpectedResourceForProcess(task.proceso, plan.recursos);
+              if (!expected.needs) {
+                return;
+              }
+              const assignedId = task.recurso_id || null;
+              const assignedTypeKey = normalizeResourceName(task.resourceTypeKey || assignedId || '');
+              if (!assignedId || !assignedTypeKey || (expected.typeKey && expected.typeKey !== assignedTypeKey)) {
+                failures.push(`${task.proceso}:${expected.typeKey || '-'}`);
+              }
+            });
+            result.ok = failures.length === 0;
+            result.detail = failures.length ? `fail ${failures.length}` : 'ok';
+          } catch (error) {
+            result.ok = false;
+            result.detail = error && error.message ? error.message : 'error';
+          } finally {
+            plan = prevPlan;
+            syncMaps();
+          }
+          return result;
+        }
+
+
         let parserFixturesRequested = false;
 
         function ensureParserFixturesLoaded() {
@@ -5194,6 +5272,8 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           }
           const smoke = runSmokeTests();
           const parserSmoke = runParserSmokeTests();
+          const resourceSmoke = runResourceSmokeTest();
+          const blockSummary = summarizeTaskBlocks();
           if (smokeResultsEl) {
             const lines = smoke
               .map(
@@ -5205,6 +5285,9 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
               parserSmoke.forEach((item) => {
                 lines.push(`${item.ok ? '[OK]' : '[FAIL]'} ${item.id}${item.detail ? `: ${item.detail}` : ''}`);
               });
+            }
+            if (resourceSmoke) {
+              lines.push(`resource-assign: ${resourceSmoke.ok ? 'OK' : 'FAIL'}${resourceSmoke.detail ? ` (${resourceSmoke.detail})` : ''}`);
             }
             smokeResultsEl.textContent = lines.join('\n');
           }
@@ -5228,6 +5311,10 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             `IR_CONF: ${Number(menuIrDiag.confidenceAvg || 0).toFixed(2)}`,
             `TAREAS: ${plan?.tareas?.length || 0}`,
             `SIN_ASIGNAR: ${state.diagnostics?.unassignedTasks || 0}`,
+            `EXECUTABLES: ${blockSummary.executable}/${blockSummary.total}`,
+            `BLOCKED_RESOURCE: ${blockSummary.blockedByResource}`,
+            `BLOCKED_PERSON: ${blockSummary.blockedByPerson}`,
+            `BLOCKED_EXAMPLES: ${(blockSummary.examples || []).join(' | ') || 'n/a'}`,
             `DURACIONES_INFERIDAS: ${state.diagnostics?.missingDurations || 0}`,
             `WARNINGS: ${validationState.warnings.length}`,
             `ERRORS: ${validationState.errors.length}`,
@@ -5988,6 +6075,71 @@ async function handlePdfFile(file) {
           return false;
         }
         return true;
+      }
+
+      function explainTaskBlocked(task) {
+        const reasons = [];
+        if (!task) {
+          return reasons;
+        }
+        if (!task.asignado_a_id) {
+          reasons.push('missing-person');
+        }
+        const expected = getExpectedResourceForProcess(task.proceso, plan.recursos);
+        const assignedId = task.recurso_id || task.resourceId || null;
+        const assignedTypeKey = normalizeResourceName(task.resourceTypeKey || assignedId || '');
+        if (expected.needs) {
+          if (!assignedId || !assignedTypeKey) {
+            reasons.push('missing-resource');
+          } else if (expected.typeKey && assignedTypeKey !== expected.typeKey) {
+            reasons.push('resource-mismatch');
+          }
+          if (assignedId && !recursoById[assignedId]) {
+            reasons.push('resource-invalid');
+          } else if (assignedId && !isResourceAvailable(assignedId)) {
+            reasons.push('resource-unavailable');
+          }
+        }
+        return reasons;
+      }
+
+      function summarizeTaskBlocks() {
+        const summary = {
+          total: 0,
+          executable: 0,
+          blockedByResource: 0,
+          blockedByPerson: 0,
+          examples: []
+        };
+        if (!plan) {
+          return summary;
+        }
+        const activePhase = getActivePhaseId();
+        (plan.tareas || []).forEach((task) => {
+          if (task.fase !== activePhase) {
+            return;
+          }
+          if (task.estado && task.estado !== 'PENDIENTE') {
+            return;
+          }
+          summary.total += 1;
+          const reasons = explainTaskBlocked(task);
+          if (!reasons.length) {
+            summary.executable += 1;
+            return;
+          }
+          if (reasons.includes('missing-person')) {
+            summary.blockedByPerson += 1;
+          }
+          if (reasons.some((reason) => reason.indexOf('resource') === 0)) {
+            summary.blockedByResource += 1;
+          }
+          if (summary.examples.length < 3) {
+            const label = task.label_short || task.nombre || task.plato || task.id;
+            summary.examples.push(`${label}: ${reasons.join(',')}`);
+          }
+        });
+        return summary;
       }
 
       function startTask(task) {
@@ -7496,8 +7648,8 @@ async function handlePdfFile(file) {
             return;
           }
           if (action === 'add-resources') {
-            assignResourcesByHeuristic({ silent: true });
             addSuggestedResources();
+            assignResourcesByHeuristic({ silent: true });
             render();
             return;
           }
@@ -7791,16 +7943,24 @@ async function handlePdfFile(file) {
       function addSuggestedResources() {
         const questions = (plan.preguntas_guiadas || []).filter((item) => item.tipo === 'ADD_RESOURCE');
         if (!questions.length) {
-          return;
+          return 0;
         }
+        let created = 0;
         questions.forEach((question) => {
+          const before = plan.recursos.length;
           questionAnswers[question.id] = 'SI';
           applyAddResourceAnswer(question, 'SI');
+          const after = plan.recursos.length;
+          if (after > before) {
+            created += after - before;
+          }
         });
         plan.preguntas_guiadas = prioritizeQuestions(plan.preguntas_guiadas);
         validateAndStore();
         calculatePlan({ silent: true });
+        return created;
       }
+
       function renderAssignments() {
         const incompleteMap = new Map();
         let incompleteCount = 0;
@@ -8116,12 +8276,29 @@ async function handlePdfFile(file) {
 
       function assignResourcesByHeuristic({ silent = false } = {}) {
         let count = 0;
+        let changed = false;
         const effective = getEffectiveResourcesCatalog();
         plan.tareas.forEach((task) => {
-          if (task.recurso_id) {
+          if (task && task.estado && task.estado !== 'PENDIENTE') {
             return;
           }
-          const taskTypeKey = task.resourceTypeKey;
+          if (task && task.locked) {
+            return;
+          }
+          const currentId = task.recurso_id || task.resourceId || null;
+          if (currentId) {
+            const entry = effective.list.find((resource) => resource.id === currentId);
+            if (entry && sanitizeInt(entry.capacidad, 0) > 0) {
+              if (!task.recurso_id) {
+                setTaskResource(task, currentId);
+                changed = true;
+              }
+              return;
+            }
+            setTaskResource(task, null);
+            changed = true;
+          }
+          const taskTypeKey = normalizeResourceName(task.resourceTypeKey || '');
           if (taskTypeKey) {
             const candidates = effective.byTypeKey[taskTypeKey] || [];
             const available =
@@ -8130,51 +8307,46 @@ async function handlePdfFile(file) {
               setTaskResource(task, available.id);
               updateTaskLabels(task, plan.recursos);
               count += 1;
+              changed = true;
               return;
             }
           }
           const expected = getExpectedResourceForProcess(task.proceso, plan.recursos);
-          if (expected.needs && expected.resourceId) {
-            const resourceEntry = effective.list.find((item) => item.id === expected.resourceId);
-            if (!resourceEntry || sanitizeInt(resourceEntry.capacidad, 0) <= 0) {
-              return;
-            }
-            setTaskResource(task, expected.resourceId);
-            updateTaskLabels(task, plan.recursos);
-            count += 1;
-            return;
-          }
-          if (!expected.needs) {
-            const pref = PROCESS_RESOURCE_PREF[expected.processKey];
-            if (Array.isArray(pref) && pref.length && pref.every((item) => !item)) {
-              return;
-            }
-            const dishHint = task.plato ? inferResourceForDish(task.plato) : null;
-            if (dishHint) {
-              const candidates = effective.byTypeKey[dishHint] || [];
-              const available =
-                candidates.find((resource) => sanitizeInt(resource.capacidad, 0) > 0) || candidates[0];
-              if (available) {
-                setTaskResource(task, available.id);
-                updateTaskLabels(task, plan.recursos);
-                count += 1;
+          if (expected.needs) {
+            if (expected.resourceId) {
+              const resourceEntry = effective.list.find((item) => item.id === expected.resourceId);
+              if (!resourceEntry || sanitizeInt(resourceEntry.capacidad, 0) <= 0) {
                 return;
               }
+              setTaskResource(task, expected.resourceId);
+              updateTaskLabels(task, plan.recursos);
+              count += 1;
+              changed = true;
             }
-            if (effective.list.length) {
-              const available = effective.list.find((resource) => sanitizeInt(resource.capacidad, 0) > 0) || effective.list[0];
+            return;
+          }
+          const dishHint = task.plato ? inferResourceForDish(task.plato) : null;
+          if (dishHint) {
+            const candidates = effective.byTypeKey[dishHint] || [];
+            const available =
+              candidates.find((resource) => sanitizeInt(resource.capacidad, 0) > 0) || candidates[0];
+            if (available) {
               setTaskResource(task, available.id);
               updateTaskLabels(task, plan.recursos);
               count += 1;
+              changed = true;
             }
           }
         });
-        if (count) {
+        if (changed) {
           validateAndStore();
           calculatePlan({ silent: true });
           if (!silent) {
             state.lastPlanMessage = `Recursos asignados: ${count}.`;
           }
+        }
+        if (!silent) {
+          render();
         }
         return count;
       }

@@ -378,14 +378,12 @@
         render();
         return;
       }
-                  if (action === 'validation-add-resources') {
+      if (action === 'validation-add-resources') {
+        const created = typeof addSuggestedResources === 'function' ? addSuggestedResources() : 0;
         const assigned = typeof assignResourcesByHeuristic === 'function'
           ? assignResourcesByHeuristic({ silent: true })
           : 0;
-        addSuggestedResources();
-        planStatusEl.textContent = assigned
-          ? `Recursos asignados: ${assigned}.`
-          : 'Recursos sugeridos agregados.';
+        planStatusEl.textContent = 'Recursos creados: ' + created + '. Tareas asignadas: ' + assigned + '.';
         render();
         return;
       }
@@ -509,7 +507,13 @@
       if (alertsAddResourcesBtn.disabled) {
         return;
       }
-      addSuggestedResources();
+      const created = typeof addSuggestedResources === 'function' ? addSuggestedResources() : 0;
+      const assigned = typeof assignResourcesByHeuristic === 'function'
+        ? assignResourcesByHeuristic({ silent: true })
+        : 0;
+      if (planStatusEl) {
+        planStatusEl.textContent = 'Recursos creados: ' + created + '. Tareas asignadas: ' + assigned + '.';
+      }
       render();
     });
 
