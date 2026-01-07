@@ -1,4 +1,4 @@
-# Jefe de cocina digital 🍽️
+# Jefe de cocina digital 
 
 Planificador operativo de cocina que transforma un menú en un plan de trabajo estructurado:
 platos → procesos → tareas → recursos y equipo.
@@ -8,7 +8,7 @@ a partir de menús en PDF o texto libre.
 
 ---
 
-## 🧠 Qué hace el proyecto
+## Qué hace el proyecto
 
 - Importa menús desde **PDF o texto**
 - Analiza y normaliza la información del menú
@@ -21,7 +21,7 @@ a partir de menús en PDF o texto libre.
 
 ---
 
-## 🛠️ Tecnologías y conceptos utilizados
+## Tecnologías y conceptos utilizados
 
 - **JavaScript (Vanilla)**
 - **HTML / CSS**
@@ -32,9 +32,9 @@ a partir de menús en PDF o texto libre.
 
 ---
 
-## 🚧 Estado del proyecto
+## Estado del proyecto
 
-🔧 **En desarrollo**
+ **En desarrollo**
 
 El proyecto se encuentra en evolución activa:
 - ampliación de reglas de inferencia
@@ -43,7 +43,7 @@ El proyecto se encuentra en evolución activa:
 
 ---
 
-## ▶️ Cómo ejecutar el proyecto
+## Cómo ejecutar el proyecto
 
 1. Clona el repositorio
 2. Abre `index.html` en tu navegador
@@ -53,13 +53,13 @@ _No requiere backend ni instalación adicional._
 
 ---
 
-## 📌 Motivación
+## Motivación
 
 Proyecto creado para explorar la automatización de procesos operativos reales,
 combinando análisis de texto, lógica de negocio y una interfaz interactiva.
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Proyecto personal. Uso académico o demostrativo.
