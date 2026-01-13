@@ -42,6 +42,18 @@
       details.open = false;
     });
   };
+  const sanitizeStoredPlan = (candidate) => {
+    if (!candidate) {
+      return null;
+    }
+    if (typeof sanitizePlanForStorage === 'function') {
+      return sanitizePlanForStorage(candidate);
+    }
+    if (window.sanitizePlanForStorage) {
+      return window.sanitizePlanForStorage(candidate);
+    }
+    return candidate;
+  };
 
   const CORE_REQUIRED = [
     'handlePdfFile',
@@ -288,8 +300,8 @@
     const newRecipeBtn = document.getElementById('new-recipe');
     const importRecipeBtn = document.getElementById('import-pdf');
     const backLibraryBtn = document.getElementById('back-library');
-    const saveRecipeBtn = document.getElementById('save-recipe');
-    const saveAsRecipeBtn = document.getElementById('save-as-recipe');
+    const saveRecipeBtn = document.getElementById('btn-save-recipe');
+    const saveAsRecipeBtn = document.getElementById('btn-save-as-new');
     const manualToggleBtn = document.getElementById('manual-toggle');
     const manualTextEl = document.getElementById('menuTextArea');
     const debugToggleEl = document.getElementById('debug-toggle');
@@ -301,27 +313,29 @@
     const aiSummaryEl = document.getElementById('ai-summary-content');
     const validationListEl = document.getElementById('validation-list');
     const prepIssuesGridEl = document.getElementById('prep-issues-grid');
-    const autoAssignPhaseBtn = document.getElementById('auto-assign-phase');
-    const autoAssignAllBtn = document.getElementById('auto-assign-all');
-    const unlockAssignmentsBtn = document.getElementById('unlock-assignments');
-    const fixDurationsBtn = byIdAny(['fix-durations', 'apply-default-durations']);
-    const fixResourcesBtn = byIdAny(['fix-resources', 'assign-heuristic']);
     const autoAssignBalancedBtn = document.getElementById('auto-assign-balanced');
-    const rebalanceTeamBtn = byIdAny(['rebalance-team', 'balance-team']);
-    const bulkResolveBtn = document.getElementById('bulk-resolve');
+    const rebalanceTeamBtn = document.getElementById('btn-rebalance-team');
+    const recalcRouteBtn = document.getElementById('btn-recalc-route');
     const autoReviewBtn = document.getElementById('auto-review');
     const startServiceBtn = document.getElementById('start-service');
     const goKitchenBtn = document.getElementById('go-kitchen');
     const advancedToggleBtn = document.getElementById('advanced-toggle');
-    const advancedPanelEl = document.getElementById('advanced-panel');
+    const settingsPanelEl = document.getElementById('settings-panel');
+    const settingsIssuesEl = document.getElementById('settings-issues');
+    const btnFixAll = document.getElementById('btn-fix-all');
+    const btnAssignResources = document.getElementById('btn-assign-resources');
+    const btnAutoassignBalanced = document.getElementById('btn-autoassign-balanced');
+    const btnFillDurations = document.getElementById('btn-fill-durations');
+    const btnToggleIssues = document.getElementById('btn-toggle-issues');
+    const btnStartService = document.getElementById('btn-start-service');
+    const btnContinueSession = document.getElementById('continue-session');
+    const btnResetSession = document.getElementById('reset-session');
     const pausePhaseBtn = document.getElementById('pause-phase');
     const finalizePhaseBtn = document.getElementById('finalize-phase');
-    const approvePlanBtn = document.getElementById('approve-plan');
-    const calcPlanBtn = document.getElementById('calc-plan');
-    const startPhaseBtn = document.getElementById('start-phase');
-    const skipPrestartBtn = document.getElementById('skip-prestart');
-    const prevPhaseBtn = document.getElementById('prev-phase');
-    const nextPhaseBtn = document.getElementById('next-phase');
+    const approvePlanBtn = document.getElementById('btn-approve-plan');
+    const phasePrevBtn = document.getElementById('btn-phase-prev');
+    const phaseNextBtn = document.getElementById('btn-phase-next');
+    const phaseSkipBtn = document.getElementById('btn-phase-skip');
     const filterPlatoEl = document.getElementById('filter-plato');
     const filterFaseEl = document.getElementById('filter-fase');
     const filterErrorsEl = document.getElementById('filter-errors');
@@ -337,9 +351,6 @@
     const lineColumnsEl = document.getElementById('line-columns');
     const recipeListEl = document.getElementById('recipe-list');
     const recipeFilterEl = document.getElementById('recipe-filter');
-    const resolveDurationsEl = document.getElementById('resolve-durations');
-    const resolveResourcesEl = document.getElementById('resolve-resources');
-    const resolveBalanceEl = document.getElementById('resolve-balance');
 
     const modeLibraryBtnEl = byIdAny(['mode-library', 'nav-library', 'btn-library']);
     const modePrepBtnEl = byIdAny(['mode-prep', 'nav-prep', 'btn-prep']);
@@ -375,6 +386,24 @@
         const assigned = result.assignedCount || 0;
         const locked = result.skippedLocked || 0;
         planStatusEl.textContent = `Autoasignado: ${assigned} tareas. No se tocaron ${locked} tareas fijadas.`;
+        if (state?.debugEnabled) {
+          console.debug('[validation-assign] autoassign', { assigned, locked });
+        }
+        render();
+        return;
+      }
+      if (action === 'validation-assign') {
+        const result = resolveAllAutomatically({ durations: true, resources: true, assign: true });
+        if (result.errorCount > 0) {
+          planStatusEl.textContent = `Quedan ${result.errorCount} problemas que requieren tu decision.`;
+        } else if (result.adjustments > 0) {
+          planStatusEl.textContent = `Reparto aplicado con ${result.adjustments} ajustes.`;
+        } else {
+          planStatusEl.textContent = 'No hay ajustes pendientes.';
+        }
+        if (state?.debugEnabled) {
+          console.debug('[validation-assign] resolve-all', result);
+        }
         render();
         return;
       }
@@ -390,6 +419,10 @@
       if (action === 'issue-toggle') {
         state.issuesOpen = !state.issuesOpen;
         renderValidation();
+        if (settingsIssuesEl) {
+          settingsIssuesEl.classList.toggle('show', state.issuesOpen);
+        }
+        render();
         return;
       }
       if (action === 'issue-goto' && issueId) {
@@ -534,48 +567,6 @@
       });
     }
 
-    on(autoAssignPhaseBtn, 'click', () => {
-      const result = autoAssignBalanced({ phaseOnly: true, respectLocked: true, onlyUnassigned: true });
-      const assigned = result.assignedCount || 0;
-      const locked = result.skippedLocked || 0;
-      planStatusEl.textContent = `Autoasignado: ${assigned} tareas. No se tocaron ${locked} tareas fijadas.`;
-      render();
-    });
-    on(autoAssignAllBtn, 'click', () => {
-      const result = autoAssignBalanced({ phaseOnly: false, respectLocked: true, onlyUnassigned: false });
-      const assigned = result.assignedCount || 0;
-      const locked = result.skippedLocked || 0;
-      planStatusEl.textContent = `Reasignado: ${assigned} tareas. No se tocaron ${locked} tareas fijadas.`;
-      render();
-    });
-    on(unlockAssignmentsBtn, 'click', () => {
-      if (!window.confirm('Desbloquear todas las tareas? Se perdera el bloqueo manual.')) {
-        return;
-      }
-      const unlocked = unlockAllAssignments();
-      planStatusEl.textContent = unlocked
-        ? `Asignaciones desbloqueadas: ${unlocked}.`
-        : 'No habia tareas bloqueadas.';
-      render();
-    });
-    on(fixDurationsBtn, 'click', () => {
-      const count = fillMissingDurations();
-      if (!count) {
-        planStatusEl.textContent = 'No hay duraciones pendientes.';
-      } else {
-        planStatusEl.textContent = `Duraciones completadas: ${count}.`;
-      }
-      render();
-    });
-    on(fixResourcesBtn, 'click', () => {
-      const count = assignResourcesByHeuristic();
-      if (!count) {
-        planStatusEl.textContent = 'No hay recursos pendientes.';
-      } else {
-        planStatusEl.textContent = `Recursos asignados: ${count}.`;
-      }
-      render();
-    });
     on(autoAssignBalancedBtn, 'click', () => {
       const result = autoAssignBalanced({ phaseOnly: false, respectLocked: true, onlyUnassigned: true });
       const assigned = result.assignedCount || 0;
@@ -592,30 +583,17 @@
         render();
       });
     }
-    if (bulkResolveBtn) {
-      bulkResolveBtn.addEventListener('click', () => {
-        const result = resolveAllAutomatically({
-          durations: resolveDurationsEl ? resolveDurationsEl.checked : true,
-          resources: resolveResourcesEl ? resolveResourcesEl.checked : true,
-          assign: resolveBalanceEl ? resolveBalanceEl.checked : true
-        });
-        if (result.errorCount > 0) {
-          planStatusEl.textContent = `Quedan ${result.errorCount} errores que requieren tu decision.`;
-        } else if (result.adjustments > 0) {
-          planStatusEl.textContent = `Plan listo con ${result.adjustments} ajustes automaticos.`;
-        } else {
-          planStatusEl.textContent = 'Listo.';
-        }
-        render();
-      });
-    }
-
     on(autoReviewBtn, 'click', () => {
       navigateTo('prep');
       reviewAutomatically();
       render();
     });
     on(startServiceBtn, 'click', () => {
+      startService();
+      navigateTo('kitchen');
+      render();
+    });
+    on(btnStartService, 'click', () => {
       startService();
       navigateTo('kitchen');
       render();
@@ -634,11 +612,11 @@
         render();
       });
     }
-    if (advancedPanelEl) {
-      advancedPanelEl.addEventListener('toggle', () => {
-        closeOverlays(advancedPanelEl);
-        setState({ advancedOpen: advancedPanelEl.open });
-        if (advancedPanelEl.open) {
+    if (settingsPanelEl) {
+      settingsPanelEl.addEventListener('toggle', () => {
+        closeOverlays(settingsPanelEl);
+        setState({ advancedOpen: settingsPanelEl.open });
+        if (settingsPanelEl.open) {
           setState({ uiMode: 'prep', screen: 'plan' });
         }
         render();
@@ -767,17 +745,90 @@
       render();
       planStatusEl.textContent = 'Plan aprobado.';
     });
-    on(calcPlanBtn, 'click', () => {
+    on(recalcRouteBtn, 'click', () => {
       if (calculatePlan()) {
         planStatusEl.textContent = state.lastPlanMessage || 'Ruta optimizada.';
       }
       render();
     });
+    on(btnFixAll, 'click', () => {
+      const result = resolveAllAutomatically();
+      if (result.errorCount > 0) {
+        planStatusEl.textContent = `Quedan ${result.errorCount} errores que requieren tu decision.`;
+      } else if (result.adjustments > 0) {
+        planStatusEl.textContent = `Plan listo con ${result.adjustments} ajustes automaticos.`;
+      } else {
+        planStatusEl.textContent = 'Listo.';
+      }
+      render();
+    });
+    on(btnAssignResources, 'click', () => {
+      const count = assignResourcesByHeuristic();
+      planStatusEl.textContent = count ? `Recursos asignados: ${count}.` : 'No hay recursos pendientes.';
+      render();
+    });
+    on(btnAutoassignBalanced, 'click', () => {
+      const result = autoAssignBalanced({ phaseOnly: false, respectLocked: true, onlyUnassigned: true });
+      const assigned = result.assignedCount || 0;
+      const locked = result.skippedLocked || 0;
+      planStatusEl.textContent = `Autoasignado: ${assigned} tareas. No se tocaron ${locked} tareas fijadas.`;
+      render();
+    });
+    on(btnFillDurations, 'click', () => {
+      const count = fillMissingDurations();
+      planStatusEl.textContent = count ? `Duraciones completadas: ${count}.` : 'No hay duraciones pendientes.';
+      if (state?.debugEnabled) {
+        console.debug('[settings] fill-durations', { count });
+      }
+      render();
+    });
+    on(btnContinueSession, 'click', () => {
+      const lastPlan = typeof sanitizeStoredPlan === 'function'
+        ? sanitizeStoredPlan(loadLastPlan())
+        : loadLastPlan();
+      if (lastPlan) {
+        setPlan(lastPlan, null, 'Plan recuperado', []);
+        if (lastPlan.recipeId) {
+          state.activeRecipeId = lastPlan.recipeId;
+        }
+        if (state?.debugEnabled) {
+          console.debug('[session] continue-session', {
+            tasks: lastPlan?.tareas?.length || 0,
+            recipeId: lastPlan.recipeId || null
+          });
+        }
+      } else {
+        planStatusEl.textContent = 'No hay sesion previa guardada.';
+        if (state?.debugEnabled) {
+          console.debug('[session] continue-session', { tasks: 0 });
+        }
+        render();
+      }
+    });
+    on(btnResetSession, 'click', () => {
+      localStorage.removeItem(LAST_PLAN_KEY);
+      localStorage.removeItem(RECIPE_ACTIVE_KEY);
+      setPlan(EMPTY_PLAN, null, 'Sin menu cargado', []);
+      if (typeof resetImportState === 'function') {
+        resetImportState();
+      }
+      if (state?.debugEnabled) {
+        console.debug('[session] reset', { cleared: true });
+      }
+      render();
+    });
+    on(btnToggleIssues, 'click', () => {
+      state.issuesOpen = !state.issuesOpen;
+      renderValidation();
+      if (settingsIssuesEl) {
+        settingsIssuesEl.classList.toggle('show', state.issuesOpen);
+      }
+      render();
+    });
 
-    on(startPhaseBtn, 'click', startPhaseCountdown);
-    on(skipPrestartBtn, 'click', skipPrestart);
-    on(prevPhaseBtn, 'click', retreatPhase);
-    on(nextPhaseBtn, 'click', () => advancePhase(false));
+    on(phasePrevBtn, 'click', retreatPhase);
+    on(phaseNextBtn, 'click', () => advancePhase(false));
+    on(phaseSkipBtn, 'click', skipPrestart);
 
     on(filterPlatoEl, 'change', (event) => {
       filterState.plato = event.target.value;
@@ -996,14 +1047,12 @@
       window.loadUserSettings();
     }
     loadRecipesFromStorage();
-    const lastPlan = loadLastPlan();
-    if (lastPlan) {
-      setPlan(lastPlan, null, 'Plan recuperado', []);
-      if (lastPlan.recipeId) {
-        state.activeRecipeId = lastPlan.recipeId;
-      }
-    } else {
-      setPlan(DEFAULT_PLAN, null, 'Plan base cargado', []);
+    setPlan(EMPTY_PLAN, null, 'Sin menu cargado', []);
+    if (typeof resetImportState === 'function') {
+      resetImportState();
+    }
+    if (state?.debugEnabled) {
+      console.debug('[init] start clean');
     }
     // Inicio segun hash actual (o biblioteca por defecto).
     const initialView = normalizeHash(location.hash);

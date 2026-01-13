@@ -245,6 +245,18 @@
         justify-content: center;
       }
 
+      .service-panel {
+        justify-content: flex-start;
+      }
+
+      body.mode-kitchen .service-panel #phase-state {
+        display: inline-flex;
+      }
+
+      body.mode-kitchen .service-panel #phase-timer-note {
+        display: inline;
+      }
+
       .status-notes {
         display: none;
         gap: 8px;
@@ -993,6 +1005,43 @@
         background: #fff;
       }
 
+      .settings-status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      #settings-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 8px;
+      }
+
+      #settings-issues-toggle {
+        margin-top: 8px;
+      }
+
+      .settings-issues {
+        margin-top: 8px;
+        display: none;
+      }
+
+      .settings-issues.show {
+        display: block;
+      }
+
+      .settings-expert-body {
+        display: grid;
+        gap: 10px;
+      }
+
+      .settings-expert-panel {
+        display: grid;
+        gap: 8px;
+      }
+
       .settings-panel[open] {
         display: block;
       }
@@ -1480,12 +1529,8 @@
         display: none;
       }
 
-      body:not(.expert) .settings-panel .settings-block {
+      body:not(.expert) .settings-panel .settings-expert-panel {
         display: none;
-      }
-
-      body:not(.expert) .settings-panel .expert-toggle-block {
-        display: block;
       }
 
       body.screen-plan .library-filters {

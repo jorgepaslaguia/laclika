@@ -561,7 +561,7 @@ if (typeof window !== 'undefined') {
           subprocesos: [
             sp('CORTAR', 'cortar ingredientes de {plato}', 'MISE_EN_PLACE', 1),
             sp('MONTAR', 'montar {plato}', 'PREELABORACION', 1),
-            sp('MEZCLAR', 'ali+¦ar {plato}', 'PREELABORACION', 1),
+            sp('MEZCLAR', 'ali+ï¿½ar {plato}', 'PREELABORACION', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
           procesos_obligatorios: ['MONTAR'],
@@ -577,7 +577,7 @@ if (typeof window !== 'undefined') {
           subprocesos: [
             sp('CORTAR', 'cortar tomate', 'MISE_EN_PLACE', 1),
             sp('MONTAR', 'montar {plato}', 'PREELABORACION', 1),
-            sp('MEZCLAR', 'ali+¦ar {plato}', 'PREELABORACION', 1),
+            sp('MEZCLAR', 'ali+ï¿½ar {plato}', 'PREELABORACION', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
           procesos_obligatorios: ['MONTAR'],
@@ -709,7 +709,7 @@ if (typeof window !== 'undefined') {
           estilos: ['FRIO', 'EMPLATADO_MINIMO', 'SALUDABLE'],
           subprocesos: [
             sp('CORTAR', 'cortar ingredientes de {plato}', 'MISE_EN_PLACE', 1),
-            sp('MEZCLAR', 'ali+¦ar ingredientes', 'PREELABORACION', 1),
+            sp('MEZCLAR', 'ali+ï¿½ar ingredientes', 'PREELABORACION', 1),
             sp('MONTAR', 'montar bowl', 'SERVICIO', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
@@ -989,7 +989,7 @@ if (typeof window !== 'undefined') {
           estilos: ['FRIO', 'EMPLATADO_CUIDADO'],
           subprocesos: [
             sp('CORTAR', 'cortar {plato}', 'MISE_EN_PLACE', 2),
-            sp('MEZCLAR', 'ali+¦ar {plato}', 'PREELABORACION', 2),
+            sp('MEZCLAR', 'ali+ï¿½ar {plato}', 'PREELABORACION', 2),
             sp('MONTAR', 'montar {plato}', 'SERVICIO', 1),
             sp('EMPLATAR', 'servir {plato}', 'SERVICIO', 1)
           ],
@@ -1618,7 +1618,7 @@ if (typeof window !== 'undefined') {
         }
         render();
         if (opts.scrollToUpload) {
-          const upload = document.getElementById('upload');
+          const upload = 'upload');
           if (upload) {
             upload.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
@@ -1675,13 +1675,24 @@ if (typeof window !== 'undefined') {
       const resolveResourcesEl = document.getElementById('resolve-resources');
       const resolveBalanceEl = document.getElementById('resolve-balance');
       const rebalanceTeamBtn = document.getElementById('rebalance-team');
-      const advancedPanelEl = document.getElementById('advanced-panel');
+      const advancedPanelEl = document.getElementById('settings-panel');
       const assignmentListEl = document.getElementById('assignment-list');
       const resourceListEl = document.getElementById('resource-list');
       const lineColumnsEl = document.getElementById('line-columns');
       const lineNoteEl = document.getElementById('line-note');
       const aiSummaryEl = document.getElementById('ai-summary-content');
       const validationListEl = document.getElementById('validation-list');
+      const settingsStatusEl = document.getElementById('settings-status');
+      const settingsStateEl = document.getElementById('settings-state');
+      const settingsCountsEl = document.getElementById('settings-counts');
+      const settingsIssuesEl = document.getElementById('settings-issues');
+      const settingsIssuesToggleEl = document.getElementById('settings-issues-toggle');
+      const settingsFixAllBtn = document.getElementById('btn-fix-all');
+      const settingsAssignResourcesBtn = document.getElementById('btn-assign-resources');
+      const settingsAutoAssignBalancedBtn = document.getElementById('btn-autoassign-balanced');
+      const settingsFillDurationsBtn = document.getElementById('btn-fill-durations');
+      const settingsToggleIssuesBtn = document.getElementById('btn-toggle-issues');
+      const settingsStartServiceBtn = document.getElementById('btn-start-service');
       const questionsListEl = document.getElementById('questions-list');
       const pdfStatusEl = document.getElementById('pdfStatus');
       const pdfErrorPanelEl = document.getElementById('pdf-error-panel');
@@ -1699,7 +1710,7 @@ if (typeof window !== 'undefined') {
         const autoAssignPhaseBtn = document.getElementById('auto-assign-phase');
         const autoAssignAllBtn = document.getElementById('auto-assign-all');
         const unlockAssignmentsBtn = document.getElementById('unlock-assignments');
-      const approvePlanBtn = document.getElementById('approve-plan');
+      const approvePlanBtn = document.getElementById('btn-approve-plan') || document.getElementById('approve-plan');
       const startPhaseBtn = document.getElementById('start-phase');
       const skipPrestartBtn = document.getElementById('skip-prestart');
       const prevPhaseBtn = document.getElementById('prev-phase');
@@ -1904,7 +1915,7 @@ if (typeof window !== 'undefined') {
         if (!value) {
           return null;
         }
-        const normalized = String(value).trim().toUpperCase();
+        const normalized = stripDiacritics(String(value || '')).trim().toUpperCase();
         if (normalized === 'HORNO') {
           return RESOURCE_IDS.HORNO;
         }
@@ -1972,6 +1983,44 @@ if (typeof window !== 'undefined') {
         }
         return deepClone(planToSave);
       }
+      function sanitizePlanForStorage(planToSave) {
+        if (!planToSave) {
+          return null;
+        }
+        const clean = deepClone(planToSave);
+        clean.phaseStatus = 'IDLE';
+        clean.phase_status = 'IDLE';
+        clean.startedAt = null;
+        clean.faseActiva = null;
+        clean.phaseActive = null;
+        const tasks = clean.tareas || clean.tasks || [];
+        tasks.forEach((task) => {
+          if (!task) {
+            return;
+          }
+          task.estado = 'PENDIENTE';
+          task.status = 'PENDIENTE';
+          task.startedAt = null;
+          task.justCompleted = false;
+          if ('completedAt' in task) {
+            task.completedAt = null;
+          }
+          if ('finishedAt' in task) {
+            task.finishedAt = null;
+          }
+          if ('endedAt' in task) {
+            task.endedAt = null;
+          }
+        });
+        if (clean.tareas) {
+          clean.tareas = tasks;
+        }
+        if (clean.tasks) {
+          clean.tasks = tasks;
+        }
+        return clean;
+      }
+
 
       function normalizePerson(person, existingIds) {
         if (!person) {
@@ -2105,7 +2154,6 @@ if (typeof window !== 'undefined') {
           : [...PHASES];
         const faseActiva = raw.faseActiva || raw.phaseActive || fases[0];
 
-        const defaultTasks = DEFAULT_PLAN.tareas || DEFAULT_PLAN.tasks || [];
         const defaultTeam = DEFAULT_PLAN.equipo || DEFAULT_PLAN.team || [];
         const defaultResources =
           DEFAULT_PLAN.recursos || DEFAULT_PLAN.resources?.items || DEFAULT_PLAN.resources || [];
@@ -2119,7 +2167,7 @@ if (typeof window !== 'undefined') {
           faseActiva,
           phaseActive: faseActiva,
           phaseStatus: raw.phaseStatus || raw.phase_status || 'IDLE',
-          tareas: tasks.length ? tasks : deepClone(defaultTasks),
+          tareas: tasks,
           equipo: team.length ? team : deepClone(defaultTeam),
           recursos: resources.length ? resources : deepClone(defaultResources),
           preguntas_rapidas: raw.preguntas_rapidas || [],
@@ -2331,7 +2379,11 @@ if (typeof window !== 'undefined') {
 
       function saveLastPlan() {
         try {
-          localStorage.setItem(LAST_PLAN_KEY, JSON.stringify(serializePlan(plan)));
+          const cleanPlan = sanitizePlanForStorage(plan);
+          if (!cleanPlan) {
+            return;
+          }
+          localStorage.setItem(LAST_PLAN_KEY, JSON.stringify(serializePlan(cleanPlan)));
         } catch (error) {
           // ignore
         }
@@ -2372,6 +2424,60 @@ if (typeof window !== 'undefined') {
         recipe.notes = plan.notas || recipe.notes || null;
         recipe.menuText = appState.menuRawText ?? recipe.menuText ?? '';
         saveRecipesToStorage();
+        return recipe;
+      }
+
+      function upsertImportedRecipe(planInput, { name, menuText } = {}) {
+        if (!planInput) {
+          return null;
+        }
+        const activeId = localStorage.getItem(RECIPE_ACTIVE_KEY) || state.activeRecipeId;
+        const activeRecipe = activeId ? recipeById[activeId] : null;
+        const isImportedRecipe = (recipe) => {
+          if (!recipe) {
+            return false;
+          }
+          const sourceType = recipe.source && recipe.source.type ? String(recipe.source.type).toLowerCase() : '';
+        
+          if (sourceType === 'imported') {
+            return true;
+          }
+          const normalizedName = normalizeToken(recipe.name || '');
+          return /(?:menu|receta)\s*importad/.test(normalizedName);
+        };
+        const baseName = deriveRecipeName(name || planInput?.name || planInput?.meta?.titulo || '');
+        const now = new Date().toISOString();
+        if (activeRecipe && isImportedRecipe(activeRecipe)) {
+          const normalized = normalizePlan(planInput);
+          activeRecipe.name = baseName || activeRecipe.name;
+          activeRecipe.paxBase = normalized.pax ?? activeRecipe.paxBase ?? null;
+          activeRecipe.phases = normalized.fases || activeRecipe.phases || [...PHASES];
+          activeRecipe.tareas = deepClone(normalized.tareas || []);
+          activeRecipe.notes = normalized.notas || activeRecipe.notes || null;
+          activeRecipe.menuText = menuText ?? activeRecipe.menuText ?? '';
+          const source = activeRecipe.source && typeof activeRecipe.source === 'object' ? { ...activeRecipe.source } : {};
+          source.type = source.type || 'imported';
+          source.updatedAt = now;
+          if (!source.createdAt) {
+            source.createdAt = now;
+          }
+          activeRecipe.source = source;
+          saveRecipesToStorage();
+          state.activeRecipeId = activeRecipe.id;
+          localStorage.setItem(RECIPE_ACTIVE_KEY, activeRecipe.id);
+          return activeRecipe;
+        }
+        const recipe = addRecipe(
+          createRecipeFromPlan(planInput, {
+            name: baseName,
+            source: { type: 'imported', createdAt: now },
+            menuText
+          })
+        );
+        if (recipe && recipe.id) {
+          state.activeRecipeId = recipe.id;
+          localStorage.setItem(RECIPE_ACTIVE_KEY, recipe.id);
+        }
         return recipe;
       }
 
@@ -2434,15 +2540,24 @@ if (typeof window !== 'undefined') {
         if (!recipeById[recipeId]) {
           return;
         }
+        const wasActive = state.activeRecipeId === recipeId;
         recipes = recipes.filter((recipe) => recipe.id !== recipeId);
         delete recipeById[recipeId];
-        if (state.activeRecipeId === recipeId) {
+        if (wasActive) {
           state.activeRecipeId = null;
           localStorage.removeItem(RECIPE_ACTIVE_KEY);
+          if (recipes.length) {
+            const fallback = recipes[0];
+            if (fallback && fallback.id) {
+              setActiveRecipe(fallback.id, { mode: 'prep', openSettings: false });
+            }
+          } else {
+            setPlan(DEFAULT_PLAN, null, 'Plan base cargado', []);
+          }
         }
         saveRecipesToStorage();
+        render();
       }
-
       function selfCheck() {
         const summary = {
           view: state.uiMode,
@@ -2498,7 +2613,7 @@ function normalizeLine(line) {
       function lineLooksLikeResource(line) {
         const raw = String(line || '');
         const normalized = normalizeToken(raw);
-        if (raw.includes('-À')) {
+        if (raw.includes('-?')) {
           return true;
         }
         if (/\b(recursos|capacidad|uso)\b/.test(normalized)) {
@@ -2723,7 +2838,7 @@ function normalizeLine(line) {
         if (mapped) {
           return mapped;
         }
-        if (cleaned.includes('BAÐO') || cleaned.includes('BANO')) {
+        if (cleaned.includes('BAï¿½O') || cleaned.includes('BANO')) {
           return 'BANO_MARIA';
         }
         const inferred = inferProcessFromName(raw);
@@ -3090,9 +3205,10 @@ function normalizeLine(line) {
 
       function parseResourcesFromText(text) {
         const resources = [];
+        const normalized = normalizeToken(text || '');
         RESOURCE_CATALOG.forEach((resource) => {
-          const capacity = extractCapacity(text, resource.pattern);
-          const hasKeyword = new RegExp(`\\b${resource.pattern}\\b`, 'i').test(text);
+          const capacity = extractCapacity(normalized, resource.pattern);
+          const hasKeyword = new RegExp(`\\b${resource.pattern}\\b`, 'i').test(normalized);
           if (capacity !== null || hasKeyword) {
             const fallbackCap = sanitizeInt(resource.defaultCap, 0);
             resources.push({
@@ -3123,7 +3239,7 @@ function normalizeLine(line) {
         return { rol: 'Equipo', nivel: 1 };
       }
 
-      function parseTeamFromLines(parseLines) {
+      function parseTeamFromLines(lines) {
           const team = [];
           const seenNames = new Set();
           const usedIds = new Set();
@@ -3214,7 +3330,7 @@ function normalizeLine(line) {
         return sanitizeDishName(words.join(' ').trim());
       }
 
-      function extractDishesFromLines(parseLines) {
+      function extractDishesFromLines(lines) {
         if (!Array.isArray(lines) || !lines.length) {
           return [];
         }
@@ -3407,10 +3523,10 @@ function normalizeLine(line) {
         const effectiveLines = cleanedLines.filter((line) => !isTrashLine(line));
         const parseLines = effectiveLines.length ? effectiveLines : cleanedLines;
         const recursos = parseResourcesFromText(normalizedForMatch);
-        const equipo = parseTeamFromLines(parseLines);
+        const equipo = parseTeamFromLines(lines);
         const comensales = detectComensales(normalizedForMatch);
         const fecha = detectDate(normalizedText);
-        const blocks = extractDishesFromLines(parseLines);
+        const blocks = extractDishesFromLines(lines);
         const platos = [];
         const diagnostics = {
           warnings: [],
@@ -3581,9 +3697,9 @@ function normalizeLine(line) {
         const normalizedForMatch = normalizeToken(normalized);
         const { lines } = normalizeLines(normalized);
         const recursos = parseResourcesFromText(normalizedForMatch);
-        const equipo = parseTeamFromLines(parseLines);
+        const equipo = parseTeamFromLines(lines);
         const platos = [];
-        const blocks = extractDishesFromLines(parseLines);
+        const blocks = extractDishesFromLines(lines);
         const inferProcessesFromLines = (blockLines) => {
           const joined = blockLines.join(' ');
           const inferred = [];
@@ -3616,7 +3732,7 @@ function normalizeLine(line) {
         const dishes = [];
         const comensales = detectComensales(normalizedForMatch);
         const fecha = detectDate(normalized);
-        const equipo = parseTeamFromLines(parseLines);
+        const equipo = parseTeamFromLines(lines);
         let currentCategory = null;
         let currentDish = null;
         let mode = null;
@@ -3796,7 +3912,7 @@ function normalizeLine(line) {
           fecha,
           recursos: resources,
           equipo,
-          lineCount: parseLines.length,
+          lineCount: lines.length,
           baseLineCount,
           fallbackUsed,
           lines
@@ -4942,9 +5058,6 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           console.debug('[buildPlanFromDraft] total tasks', tasks.length);
         }
 
-        if (!tasks.length) {
-          tasks.push(...(DEFAULT_PLAN.tareas || DEFAULT_PLAN.tasks || []));
-        }
 
         const uniqueUncertainties = Array.from(new Set(uncertainties)).slice(0, 5);
         const planBuilt = {
@@ -5347,6 +5460,16 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           const id = makeIdFromName(`${severity}_${entityType}_${entityId || message}`.slice(0, 80), 'ISSUE');
           list.push({ id, severity, message, entityType, entityId, field });
         };
+        if (!tasks.length) {
+          addIssue(
+            errors,
+            'error',
+            'No se detectaron platos/tareas. Revisa el formato del menu o pega el texto manualmente.',
+            'global',
+            'plan',
+            'tasks'
+          );
+        }
 
         resources.forEach((resource) => {
           if (sanitizeInt(resource.capacity ?? resource.capacidad, 0) <= 0) {
@@ -5736,8 +5859,8 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
               comensales: detectComensales(normalizedForMatch),
               fecha: detectDate(normalizedText),
               recursos: parseResourcesFromText(normalizedForMatch),
-              equipo: parseTeamFromLines(parseLines),
-              lineCount: parseLines.length,
+              equipo: parseTeamFromLines(lines),
+              lineCount: lines.length,
               baseLineCount,
               fallbackUsed,
               lines
@@ -7064,6 +7187,16 @@ async function handlePdfFile(file) {
               issues.push(issue);
             }
           };
+          if (!tasks.length) {
+            addIssue({
+              id: 'PLAN_TASKS_EMPTY',
+              severity: 'error',
+              code: 'TASKS_EMPTY',
+              messageHumano: 'No se detectaron platos/tareas. Revisa el formato del menu o pega el texto manualmente.',
+              entityType: 'plan',
+              entityId: 'tasks'
+            });
+          }
 
           effectiveResources.list.forEach((resource) => {
             if (sanitizeInt(resource.capacidad, 0) <= 0) {
@@ -7326,7 +7459,7 @@ async function handlePdfFile(file) {
         const warningCount = warnings.length;
         const diagnostics = state.diagnostics || emptyDiagnostics();
         const hasIssues = errorCount + warningCount > 0;
-        const canShowDetails = state.advancedOpen;
+        const canShowDetails = true;
         if (!canShowDetails) {
           state.issuesOpen = false;
         }
@@ -7448,6 +7581,55 @@ async function handlePdfFile(file) {
             ${moreNote}
           </div>` : ''}
         `;
+      }
+
+      function updateSettingsPanel() {
+        if (!settingsStateEl && !settingsCountsEl && !settingsIssuesEl && !settingsFixAllBtn && !settingsAssignResourcesBtn &&
+            !settingsAutoAssignBalancedBtn && !settingsFillDurationsBtn && !settingsToggleIssuesBtn && !settingsStartServiceBtn) {
+          return;
+        }
+        const diagnostics = state.diagnostics || emptyDiagnostics();
+        const issues = state.issues || [];
+        const errorCount = issues.filter((issue) => issue.severity === 'error').length;
+        const warningCount = issues.filter((issue) => issue.severity === 'warning').length;
+        const needsDurations = diagnostics.missingDurations > 0;
+        const needsResources = (diagnostics.missingResources || []).length > 0;
+        const needsAssignments = diagnostics.unassignedTasks > 0;
+        const hasProblems = errorCount + warningCount > 0 || needsDurations || needsResources || needsAssignments;
+        const statusLabel = errorCount ? 'Bloqueado' : state.approved ? 'Aprobado' : 'Listo';
+        const setButtonState = (button, disabled, reason) => {
+          if (!button) {
+            return;
+          }
+          button.disabled = disabled;
+          button.title = disabled && reason ? reason : '';
+        };
+        if (settingsStateEl) {
+          settingsStateEl.textContent = statusLabel;
+        }
+        if (settingsCountsEl) {
+          settingsCountsEl.textContent = `Errores: ${errorCount} | Avisos: ${warningCount}`;
+        }
+        const canStart = state.approved && errorCount === 0 && state.phaseStatus === 'idle';
+        setButtonState(
+          settingsStartServiceBtn,
+          !canStart,
+          !state.approved ? 'Plan sin aprobar' : errorCount ? 'Plan bloqueado' : 'Servicio en curso'
+        );
+        setButtonState(settingsFixAllBtn, !hasProblems, 'Sin problemas');
+        setButtonState(settingsAssignResourcesBtn, !needsResources, 'Sin recursos pendientes');
+        setButtonState(settingsAutoAssignBalancedBtn, !needsAssignments, 'Sin tareas sin asignar');
+        setButtonState(settingsFillDurationsBtn, !needsDurations, 'Sin duraciones pendientes');
+        setButtonState(settingsToggleIssuesBtn, !hasProblems, 'Sin problemas');
+        if (settingsToggleIssuesBtn) {
+          settingsToggleIssuesBtn.textContent = state.issuesOpen ? 'Ocultar problemas' : 'Ver problemas';
+        }
+        if (settingsIssuesEl) {
+          settingsIssuesEl.classList.toggle('show', state.issuesOpen && hasProblems);
+        }
+        if (settingsIssuesToggleEl) {
+          settingsIssuesToggleEl.classList.toggle('hidden', !hasProblems);
+        }
       }
 
       function renderPrepIssues() {
@@ -7995,11 +8177,16 @@ async function handlePdfFile(file) {
             : '';
         }
         const errorCount = (state.issues || []).filter((issue) => issue.severity === 'error').length;
-        approvePlanBtn.disabled = errorCount > 0;
-        approvePlanBtn.title = errorCount
-          ? `Hay ${errorCount} problemas que requieren decision.`
-          : '';
+        if (approvePlanBtn) {
+          approvePlanBtn.disabled = errorCount > 0;
+          approvePlanBtn.title = errorCount
+            ? `Hay ${errorCount} problemas que requieren decision.`
+            : '';
+        }
 
+        if (!assignmentListEl) {
+          return;
+        }
         const tasks = plan.tareas.filter((task) => {
           if (filterState.plato !== 'ALL' && task.plato !== filterState.plato) {
             return false;
@@ -8450,7 +8637,7 @@ async function handlePdfFile(file) {
             })
           : { assignedCount: 0 };
         const scheduled = calculatePlan({ silent: true });
-        validateAndStore();
+        validateAndStore({ skipAutoFixes: true });
         const errorCount = (state.issues || []).filter((issue) => issue.severity === 'error').length;
         const warningCount = (state.issues || []).filter((issue) => issue.severity === 'warning').length;
         const autoAssigned = autoAssignResult?.assignedCount || 0;
@@ -9122,9 +9309,6 @@ function updateControls() {
         document.body.classList.toggle('expert', state.expertMode);
         document.body.classList.toggle('service-active', state.phaseStatus !== 'idle');
         document.body.classList.toggle('manual-open', state.manualTextOpen);
-        if (!state.advancedOpen) {
-          state.issuesOpen = false;
-        }
         if (advancedPanelEl) {
           advancedPanelEl.open = state.advancedOpen;
         }
@@ -9160,6 +9344,7 @@ function updateControls() {
         renderAlerts();
         renderFilters();
         renderValidation();
+        updateSettingsPanel();
         renderQuestions();
         renderAssignments();
         renderPrepIssues();
@@ -9424,6 +9609,7 @@ function updateControls() {
         window.addSuggestedResources = addSuggestedResources;
         window.fillMissingDurations = fillMissingDurations;
         window.autoAssignBalanced = autoAssignBalanced;
+        window.sanitizePlanForStorage = sanitizePlanForStorage;
       }
 
       // UI bindings and initialization moved to app.js.

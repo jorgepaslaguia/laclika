@@ -132,67 +132,78 @@
             </div>
           </section>
 
-          <details id="advanced-panel" class="settings-panel">
+          <details id="settings-panel" class="settings-panel">
             <summary class="panel-title">Ajustes</summary>
             <div class="settings-body">
-              <div class="settings-block">
-                <div class="block-title">Arreglar plan</div>
-                <div class="controls">
-                  <button id="bulk-resolve" class="btn primary">Resolver todo automaticamente</button>
-                  <button id="save-recipe" class="btn">Guardar receta</button>
-                  <button id="save-as-recipe" class="btn ghost">Guardar como nueva</button>
-                </div>
-                <div class="controls expert-only">
-                  <label class="note">
-                    <input id="resolve-durations" type="checkbox" checked />
-                    Autocompletar duraciones
-                  </label>
-                  <label class="note">
-                    <input id="resolve-resources" type="checkbox" checked />
-                    Asignar recursos
-                  </label>
-                  <label class="note">
-                    <input id="resolve-balance" type="checkbox" checked />
-                    Reequilibrar equipo
-                  </label>
+              <div id="settings-status" class="settings-block">
+                <div class="block-title">Estado del plan</div>
+                <div class="settings-status-row">
+                  <div id="settings-state" class="summary-status"></div>
+                  <div id="settings-counts" class="summary-meta"></div>
                 </div>
                 <div id="plan-status" class="note"></div>
-                <div class="plan-issues expert-only">
-                  <div class="label">Que falta para empezar</div>
+              </div>
+
+              <div class="settings-block">
+                <div class="block-title">Correccion guiada</div>
+                <div id="settings-actions" class="controls">
+                  <button id="btn-fix-all" class="btn primary">Resolver todo automaticamente</button>
+                  <button id="btn-assign-resources" class="btn ghost">Asignar recursos</button>
+                  <button id="btn-autoassign-balanced" class="btn ghost">Autoasignar equilibrado</button>
+                  <button id="btn-fill-durations" class="btn ghost">Autocompletar duraciones</button>
+                  <button id="btn-start-service" class="btn success">Iniciar servicio</button>
+                </div>
+                <div id="settings-issues-toggle" class="controls">
+                  <button id="btn-toggle-issues" class="btn ghost">Ver problemas</button>
+                </div>
+                <div id="settings-issues" class="settings-issues">
                   <div id="validation-list" class="validation"></div>
                 </div>
               </div>
 
               <div class="settings-block">
-                <div class="block-title">Optimizar</div>
+                <div class="block-title">Sesion</div>
                 <div class="controls">
-                  <button id="rebalance-team" class="btn">Reequilibrar equipo</button>
-                  <button id="calc-plan" class="btn ghost">Recalcular ruta optima</button>
+                  <button id="continue-session" class="btn ghost">Continuar ultima sesion</button>
+                  <button id="reset-session" class="btn ghost">Reset sesion</button>
                 </div>
               </div>
 
-              <div class="settings-block expert-toggle-block">
-                <div class="block-title">Modo experto</div>
-                <label class="note">
-                  <input id="expert-toggle" type="checkbox" />
-                  Activar modo experto
-                </label>
-              </div>
+              <details id="settings-expert" class="settings-block">
+                <summary class="block-title">Modo experto</summary>
+                <div class="settings-expert-body">
+                  <label class="note">
+                    <input id="expert-toggle" type="checkbox" />
+                    Activar modo experto
+                  </label>
 
-              <details class="settings-block danger-zone expert-only">
-                <summary class="block-title">Avanzado</summary>
-                <div class="controls">
-                  <button id="unlock-assignments" class="btn danger">Desbloquear tareas</button>
-                  <button id="fix-durations" class="btn ghost">Autocompletar duraciones</button>
-                  <button id="fix-resources" class="btn ghost">Asignar recursos</button>
-                  <button id="auto-assign-balanced" class="btn ghost">Autoasignar equilibrado</button>
-                  <button id="auto-assign-all" class="btn ghost">Autoasignar todo</button>
-                  <button id="auto-assign-phase" class="btn ghost">Autoasignar fase actual</button>
-                  <button id="approve-plan" class="btn ghost">Aprobar y programar</button>
-                  <button id="start-phase" class="btn ghost">Iniciar fase</button>
-                  <button id="skip-prestart" class="btn ghost">Saltar</button>
-                  <button id="prev-phase" class="btn ghost">Retroceder</button>
-                  <button id="next-phase" class="btn ghost">Avanzar</button>
+                  <div class="settings-expert-panel expert-only">
+                    <div class="settings-block">
+                      <div class="block-title">Gestion de recetas</div>
+                      <div class="controls">
+                        <button id="btn-save-recipe" class="btn">Guardar receta</button>
+                        <button id="btn-save-as-new" class="btn ghost">Guardar como nueva</button>
+                      </div>
+                    </div>
+
+                    <div class="settings-block">
+                      <div class="block-title">Optimizacion</div>
+                      <div class="controls">
+                        <button id="btn-rebalance-team" class="btn">Reequilibrar equipo</button>
+                        <button id="btn-recalc-route" class="btn ghost">Recalcular ruta optima</button>
+                      </div>
+                    </div>
+
+                    <div class="settings-block service-only">
+                      <div class="block-title">Control de servicio</div>
+                      <div class="controls">
+                        <button id="btn-approve-plan" class="btn ghost">Aprobar y programar</button>
+                        <button id="btn-phase-prev" class="btn ghost">Retroceder</button>
+                        <button id="btn-phase-next" class="btn ghost">Avanzar</button>
+                        <button id="btn-phase-skip" class="btn ghost">Saltar</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </details>
             </div>
@@ -252,6 +263,18 @@
         </section>
 
         <section id="view-kitchen" class="kitchen-only">
+          <section class="section" id="service">
+            <div class="section-title">Servicio</div>
+            <div class="status-strip service-panel">
+              <div id="active-phase" class="status-badge phase"></div>
+              <div id="phase-state" class="status-badge"></div>
+              <div id="phase-timer-wrap" class="status-timer">
+                <span id="phase-timer"></span>
+                <span id="phase-timer-note" class="note"></span>
+              </div>
+            </div>
+          </section>
+
           <section class="section" id="resources">
             <div class="section-title">Recursos ocupados</div>
             <div id="resource-list" class="resource-grid"></div>
