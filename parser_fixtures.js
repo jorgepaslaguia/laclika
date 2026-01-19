@@ -70,5 +70,41 @@ window.PARSER_FIXTURES = [
     level: 5,
     text: 'MENU Y ELABORACIONES 1. CROQUETAS CASERAS Procesos: COCER, ENFRIAR, FORMAR, FREIR, EMPLATAR 2. SOPA DE VERDURAS Procesos: CORTAR, COCER, EMPLATAR 3. POLLO ASADO Procesos: ASAR, EMPLATAR 4. ENSALADA MIXTA Procesos: LAVAR, CORTAR, MONTAR 5. FLAN Procesos: MEZCLAR, BANO MARIA, ENFRIAR, EMPLATAR 6. PASTA FRESCA Procesos: AMASAR, FORMAR, COCER, EMPLATAR',
     expect: { platesMin: 6, tasksMin: 18, phasesMin: 2 }
+  },
+  {
+    id: 'h0_entrecot_reduccion',
+    level: 0,
+    text: 'MENU\n1. ENTRECOT CON REDUCCION DE VINO TINTO\nIngredientes: entrecot; vino tinto; fondo',
+    expect: { platesMin: 1, tasksMin: 3, phasesMin: 2 }
+  },
+  {
+    id: 'h0_ensalada_cruda',
+    level: 0,
+    text: 'MENU\n1. ENSALADA CRUDA DE TOMATE\nIngredientes: tomate; aceite; sal',
+    expect: { platesMin: 1, tasksMin: 4, phasesMin: 2 }
+  },
+  {
+    id: 'h0_flan_casero',
+    level: 0,
+    text: 'MENU\n1. FLAN CASERO\nIngredientes: leche; huevos; azucar',
+    expect: { platesMin: 1, tasksMin: 4, phasesMin: 2 }
+  },
+  {
+    id: 'h0_bizcocho',
+    level: 0,
+    text: 'MENU\n1. BIZCOCHO DE LIMON\nIngredientes: harina; huevo; azucar',
+    expect: { platesMin: 1, tasksMin: 4, phasesMin: 2 }
+  },
+  {
+    id: 'h0_ravioli',
+    level: 0,
+    text: 'MENU\n1. RAVIOLI DE ESPINACA\nIngredientes: pasta; espinaca; ricotta',
+    expect: { platesMin: 1, tasksMin: 3, phasesMin: 2 }
+  },
+  {
+    id: 'h1_menu_mixto_reduccion',
+    level: 1,
+    text: 'MENU DEGUSTACION\n1. ENTRECOT CON REDUCCION\n2. ENSALADA DE TOMATE\n3. FLAN',
+    expect: { platesMin: 3, tasksMin: 9, phasesMin: 2 }
   }
 ];

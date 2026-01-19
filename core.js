@@ -82,6 +82,7 @@ if (typeof window !== 'undefined') {
         'FREIR',
         'SALTEAR',
         'SOFREIR',
+        'REDUCIR',
         'COCER',
         'HORNEAR',
         'GRATINAR',
@@ -99,8 +100,9 @@ if (typeof window !== 'undefined') {
         { process: 'GRATINAR', regex: /(gratin|gratinado)/i },
         { process: 'BANO_MARIA', regex: /(bano maria)/i },
         { process: 'HORNEAR', regex: /(hornear|al horno|asar al horno|horno)/i },
-        { process: 'SALTEAR', regex: /(saltear|confitar|plancha)/i },
+        { process: 'SALTEAR', regex: /(saltear|confitar|plancha|sellar)/i },
         { process: 'SOFREIR', regex: /(sofreir|sofrito)/i },
+        { process: 'REDUCIR', regex: /(reducir|reduccion|reducido)/i },
         { process: 'COCER', regex: /(cocer|hervir|pochar|guisar|estofar|cuajar)/i },
         { process: 'TRITURAR', regex: /(triturar|batir|licuar|emulsionar)/i },
         { process: 'ESCURRIR', regex: /(escurrir|colar)/i },
@@ -114,7 +116,7 @@ if (typeof window !== 'undefined') {
         { process: 'REPOSAR', regex: /(reposar|descansar)/i },
         { process: 'ENFRIAR', regex: /(enfriar|refrigerar|temperar)/i }
       ];
-      const PROCESS_VERB_REGEX = /\b(lavar|escurrir|cortar|picar|trocear|laminar|pelar|mezclar|montar|formar|freir|saltear|sofreir|cocer|hervir|pochar|guisar|estofar|hornear|asar|gratin(?:ar|ado)?|bano maria|emplatar|servir|reposar|enfriar|triturar|limpiar|marinar|amasar|aderezar)\b/i;
+      const PROCESS_VERB_REGEX = /\b(lavar|escurrir|cortar|picar|trocear|laminar|pelar|mezclar|montar|formar|freir|saltear|sofreir|sellar|reducir|reduccion|cocer|hervir|pochar|guisar|estofar|hornear|asar|gratin(?:ar|ado)?|bano maria|emplatar|servir|reposar|enfriar|triturar|limpiar|marinar|amasar|aderezar)\b/i;
       const TECHNIQUE_MAP = {
         BRASEADO: 'COCER',
         BRASADO: 'COCER',
@@ -133,7 +135,10 @@ if (typeof window !== 'undefined') {
         REBOZADO: 'FREIR',
         REBOZAR: 'FREIR',
         AHUMAR: 'HORNEAR',
-        GRATINADO: 'GRATINAR'
+        GRATINADO: 'GRATINAR',
+        REDUCCION: 'REDUCIR',
+        REDUCIR: 'REDUCIR',
+        REDUCIDO: 'REDUCIR'
       };
 
       const PROCESS_RESOURCE_PREF = {
@@ -146,6 +151,7 @@ if (typeof window !== 'undefined') {
         FREIR: ['FOGONES'],
         SALTEAR: ['FOGONES'],
         SOFREIR: ['FOGONES'],
+        REDUCIR: ['FOGONES'],
         COCER: ['FOGONES'],
         HORNEAR: ['HORNO'],
         GRATINAR: ['HORNO'],
@@ -159,28 +165,29 @@ if (typeof window !== 'undefined') {
       };
 
       const VERB_MAP = {
-        LAVAR: { phase: 'MISE_EN_PLACE', baseMin: 8, resourceKey: 'FREGADERO' },
-        ESCURRIR: { phase: 'MISE_EN_PLACE', baseMin: 6, resourceKey: 'FREGADERO' },
-        CORTAR: { phase: 'MISE_EN_PLACE', baseMin: 12, resourceKey: 'ESTACION' },
-        MEZCLAR: { phase: 'PREELABORACION', baseMin: 12, resourceKey: 'ESTACION' },
-        MONTAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: 'ESTACION' },
-        FORMAR: { phase: 'PREELABORACION', baseMin: 12, resourceKey: 'ESTACION' },
-        TRITURAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: 'ESTACION' },
-        SALTEAR: { phase: 'PREELABORACION', baseMin: 18, resourceKey: 'FOGONES' },
-        SOFREIR: { phase: 'PREELABORACION', baseMin: 15, resourceKey: 'FOGONES' },
-        FREIR: { phase: 'PREELABORACION', baseMin: 14, resourceKey: 'FOGONES' },
-        COCER: { phase: 'PREELABORACION', baseMin: 22, resourceKey: 'FOGONES' },
-        POCHAR: { phase: 'PREELABORACION', baseMin: 18, resourceKey: 'FOGONES' },
-        HORNEAR: { phase: 'PREELABORACION', baseMin: 45, resourceKey: 'HORNO' },
-        ASAR: { phase: 'PREELABORACION', baseMin: 55, resourceKey: 'HORNO' },
-        GRATINAR: { phase: 'PREELABORACION', baseMin: 20, resourceKey: 'HORNO' },
-        BANO_MARIA: { phase: 'PREELABORACION', baseMin: 40, resourceKey: 'HORNO' },
-        EMPLATAR: { phase: 'SERVICIO', baseMin: 8, resourceKey: 'ESTACION' },
+        LAVAR: { phase: 'MISE_EN_PLACE', baseMin: 6, resourceKey: 'FREGADERO' },
+        ESCURRIR: { phase: 'MISE_EN_PLACE', baseMin: 4, resourceKey: 'FREGADERO' },
+        CORTAR: { phase: 'MISE_EN_PLACE', baseMin: 7, resourceKey: 'ESTACION' },
+        MEZCLAR: { phase: 'PREELABORACION', baseMin: 8, resourceKey: 'ESTACION' },
+        MONTAR: { phase: 'PREELABORACION', baseMin: 8, resourceKey: 'ESTACION' },
+        FORMAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: 'ESTACION' },
+        TRITURAR: { phase: 'PREELABORACION', baseMin: 8, resourceKey: 'ESTACION' },
+        SALTEAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: 'FOGONES' },
+        SOFREIR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: 'FOGONES' },
+        REDUCIR: { phase: 'PREELABORACION', baseMin: 16, resourceKey: 'FOGONES' },
+        FREIR: { phase: 'PREELABORACION', baseMin: 12, resourceKey: 'FOGONES' },
+        COCER: { phase: 'PREELABORACION', baseMin: 16, resourceKey: 'FOGONES' },
+        POCHAR: { phase: 'PREELABORACION', baseMin: 14, resourceKey: 'FOGONES' },
+        HORNEAR: { phase: 'PREELABORACION', baseMin: 35, resourceKey: 'HORNO' },
+        ASAR: { phase: 'PREELABORACION', baseMin: 45, resourceKey: 'HORNO' },
+        GRATINAR: { phase: 'PREELABORACION', baseMin: 18, resourceKey: 'HORNO' },
+        BANO_MARIA: { phase: 'PREELABORACION', baseMin: 35, resourceKey: 'HORNO' },
+        EMPLATAR: { phase: 'SERVICIO', baseMin: 6, resourceKey: 'ESTACION' },
         DECORAR: { phase: 'SERVICIO', baseMin: 6, resourceKey: 'ESTACION' },
         TERMINAR: { phase: 'SERVICIO', baseMin: 6, resourceKey: 'ESTACION' },
-        LIMPIAR: { phase: 'MISE_EN_PLACE', baseMin: 6, resourceKey: 'FREGADERO' },
-        REPOSAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: null },
-        ENFRIAR: { phase: 'PREELABORACION', baseMin: 12, resourceKey: null }
+        LIMPIAR: { phase: 'MISE_EN_PLACE', baseMin: 5, resourceKey: 'FREGADERO' },
+        REPOSAR: { phase: 'PREELABORACION', baseMin: 8, resourceKey: null },
+        ENFRIAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: null }
       };
 
       const RESOURCE_HINTS = {
@@ -1262,6 +1269,60 @@ if (typeof window !== 'undefined') {
           primaryProcess: 'HORNEAR'
         }
       ];
+      const DISH_PROFILES = [
+        {
+          key: 'RAW_SALAD',
+          match: (token) => /(ensalada|carpaccio|tartar|gazpacho|crudo)/.test(token),
+          processes: ['LAVAR', 'CORTAR', 'MEZCLAR', 'EMPLATAR'],
+          resourceHints: ['FREGADERO', 'ESTACION'],
+          confidence: 0.62
+        },
+        {
+          key: 'PASTA',
+          match: (token) => /(pasta|ravioli|gnocchi|tortellini)/.test(token),
+          processes: ['COCER', 'MEZCLAR', 'EMPLATAR'],
+          getExtraProcesses: (token) => (/(salsa|ragu|bolo|bolog|pesto)/.test(token) ? ['SALTEAR'] : []),
+          resourceHints: ['FOGONES', 'ESTACION'],
+          confidence: 0.6
+        },
+        {
+          key: 'POSTRE_HORNO',
+          match: (token) => /(tarta|bizcocho|brownie)/.test(token),
+          processes: ['MEZCLAR', 'HORNEAR', 'ENFRIAR', 'EMPLATAR'],
+          resourceHints: ['HORNO', 'ESTACION'],
+          confidence: 0.6
+        },
+        {
+          key: 'FLAN_BANOMARIA',
+          match: (token) => /flan/.test(token),
+          processes: ['MEZCLAR', 'BANO_MARIA', 'ENFRIAR', 'EMPLATAR'],
+          resourceHints: ['HORNO', 'ESTACION'],
+          confidence: 0.6
+        },
+        {
+          key: 'CARNE_REDUCCION',
+          match: (token) => /(reduccion|reducir|vino tinto|vino_tinto)/.test(token),
+          processes: ['SALTEAR', 'REDUCIR', 'EMPLATAR'],
+          resourceHints: ['FOGONES', 'ESTACION'],
+          confidence: 0.65
+        }
+      ];
+      function getDishProfile(dishName) {
+        const token = normalizeToken(dishName || '');
+        if (!token) {
+          return null;
+        }
+        for (const profile of DISH_PROFILES) {
+          try {
+            if (profile.match && profile.match(token, dishName)) {
+              return profile;
+            }
+          } catch (error) {
+            // ignore profile errors
+          }
+        }
+        return null;
+      }
       function formatSubprocessName(template, dishName) {
         return String(template || '').replace(/\{plato\}/gi, dishName).trim();
       }
@@ -2162,6 +2223,8 @@ if (typeof window !== 'undefined') {
           depende_de: task.depende_de || task.dependsOn || [],
           label_short: task.label_short || task.titleShort || '',
           label_full: task.label_full || task.titleFull || '',
+          profileKey: task.profileKey || task.profile_key || null,
+          origin: task.origin || task.origen || origen,
           confianza: task.confianza ?? task.meta?.confidence,
           origen
         };
@@ -3129,7 +3192,7 @@ function normalizeLine(line) {
             typeKey = 'ESTACION';
           } else if (/mezclar|montar|emplatar/.test(normalized)) {
             typeKey = 'ESTACION';
-          } else if (/cocer|saltear|freir|sofreir|hervir|guisar|cocinar/.test(normalized)) {
+          } else if (/cocer|saltear|freir|sofreir|reducir|hervir|guisar|cocinar/.test(normalized)) {
             typeKey = 'FOGONES';
           } else if (/hornear|asar|gratin/.test(normalized)) {
             typeKey = 'HORNO';
@@ -4431,31 +4494,72 @@ function normalizeLine(line) {
         return 20;
       }
 
+      function clampDurationForProcess(process, duration, dishName) {
+        const normalized = normalizeToken(dishName);
+        if (process === 'LAVAR' || process === 'CORTAR') {
+          return clamp(duration, 3, 8);
+        }
+        if (process === 'MEZCLAR') {
+          return clamp(duration, 5, 12);
+        }
+        if (process === 'SALTEAR' || process === 'SOFREIR') {
+          return clamp(duration, 6, 15);
+        }
+        if (process === 'COCER' && /(pasta|ravioli|gnocchi|tortellini)/.test(normalized)) {
+          return clamp(duration, 10, 20);
+        }
+        if (process === 'HORNEAR' && /(tarta|bizcocho|brownie)/.test(normalized)) {
+          return clamp(duration, 25, 50);
+        }
+        if (process === 'BANO_MARIA') {
+          return clamp(duration, 25, 45);
+        }
+        if (process === 'ENFRIAR' || process === 'REPOSAR') {
+          return clamp(duration, 5, 15);
+        }
+        if (process === 'REDUCIR') {
+          if (/(vino tinto|fondo|salsa)/.test(normalized)) {
+            return clamp(duration, 15, 25);
+          }
+          return clamp(duration, 8, 20);
+        }
+        return duration;
+      }
+
       function estimateDuration(process, baseTime, dishName) {
         const normalized = normalizeToken(dishName);
         if (process === 'HORNEAR') {
-          if (normalized.includes('flan')) {
-            return clamp(Math.round(baseTime || 45), 35, 60);
+          if (/(tarta|bizcocho|brownie)/.test(normalized)) {
+            return clamp(Math.round(baseTime || 40), 25, 50);
           }
-          return clamp(Math.round(baseTime || 60), 45, 120);
+          return clamp(Math.round(baseTime || 60), 35, 120);
         }
         if (process === 'GRATINAR') {
           return clamp(Math.round(baseTime || 25), 12, 40);
         }
         if (process === 'BANO_MARIA') {
-          return clamp(Math.round(baseTime || 45), 35, 60);
+          return clamp(Math.round(baseTime || 35), 25, 45);
         }
         if (process === 'FREIR') {
           return clamp(Math.round(baseTime * 0.4), 8, 15);
         }
         if (process === 'COCER') {
+          if (/(pasta|ravioli|gnocchi|tortellini)/.test(normalized)) {
+            return clamp(Math.round(baseTime * 0.45), 10, 20);
+          }
           return clamp(Math.round(baseTime * 0.5), 15, 45);
         }
         if (process === 'SALTEAR') {
-          return clamp(Math.round(baseTime * 0.5), 10, 35);
+          return clamp(Math.round(baseTime * 0.45), 6, 15);
         }
         if (process === 'SOFREIR') {
-          return clamp(Math.round(baseTime * 0.4), 8, 25);
+          return clamp(Math.round(baseTime * 0.4), 6, 15);
+        }
+        if (process === 'REDUCIR') {
+          if (/(vino tinto|fondo|salsa)/.test(normalized)) {
+            return clamp(Math.round(baseTime * 0.6), 15, 25);
+          }
+          return clamp(Math.round(baseTime * 0.45), 8, 20);
         }
         if (process === 'TRITURAR') {
           return clamp(Math.round(baseTime * 0.3), 6, 15);
@@ -4467,13 +4571,13 @@ function normalizeLine(line) {
           return clamp(Math.round(baseTime * 0.25), 6, 18);
         }
         if (process === 'MEZCLAR') {
-          return clamp(Math.round(baseTime * 0.4), 8, 20);
+          return clamp(Math.round(baseTime * 0.35), 5, 12);
         }
         if (process === 'CORTAR') {
-          return clamp(Math.round(baseTime * 0.25), 5, 20);
+          return clamp(Math.round(baseTime * 0.25), 3, 8);
         }
         if (process === 'LAVAR') {
-          return clamp(Math.round(baseTime * 0.2), 5, 15);
+          return clamp(Math.round(baseTime * 0.2), 3, 8);
         }
         if (process === 'ESCURRIR') {
           return clamp(Math.round(baseTime * 0.2), 4, 12);
@@ -4482,7 +4586,7 @@ function normalizeLine(line) {
           return clamp(Math.round(baseTime * 0.2), 4, 12);
         }
         if (process === 'ENFRIAR' || process === 'REPOSAR') {
-          return clamp(Math.round(baseTime * 0.3), 8, 25);
+          return clamp(Math.round(baseTime * 0.3), 5, 15);
         }
         return clamp(Math.round(baseTime * 0.4), 6, 25);
       }
@@ -4508,6 +4612,7 @@ function normalizeLine(line) {
           FREIR: 'freir',
           SALTEAR: 'saltear',
           SOFREIR: 'sofreir',
+          REDUCIR: 'reducir',
           COCER: 'cocer',
           HORNEAR: 'hornear',
           GRATINAR: 'gratinar',
@@ -4613,7 +4718,16 @@ function normalizeLine(line) {
         if (patternId === 'PASTA') {
           return 'COCER';
         }
-        if (/(ensalada|tartar|carpaccio|crudo)/.test(normalized)) {
+        if (/(reduccion|reducir|vino tinto)/.test(normalized)) {
+          return 'REDUCIR';
+        }
+        if (/(tarta|bizcocho|brownie)/.test(normalized)) {
+          return 'HORNEAR';
+        }
+        if (normalized.includes('flan')) {
+          return 'BANO_MARIA';
+        }
+        if (/(ensalada|tartar|carpaccio|crudo|gazpacho)/.test(normalized)) {
           return 'MEZCLAR';
         }
         if (/gratin/.test(normalized)) {
@@ -4663,6 +4777,9 @@ function normalizeLine(line) {
               return 'GRATINAR';
             }
             return 'HORNEAR';
+          }
+          if (/reduccion|reducir|vino tinto/.test(normalizeToken(dishName))) {
+            return 'REDUCIR';
           }
           if (pattern === 'CROQUETAS' || pattern === 'EMPANADILLAS') {
             return 'FREIR';
@@ -4847,6 +4964,115 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           return { tasks, questions, guidedQuestions, uncertainties, estilos: styles, pattern };
         }
 
+      function resolveProfileProcesses(profile, dishName) {
+        const token = normalizeToken(dishName || '');
+        const base = Array.isArray(profile.processes) ? profile.processes.slice() : [];
+        const extra =
+          typeof profile.getExtraProcesses === 'function' ? profile.getExtraProcesses(token, dishName) || [] : [];
+        return normalizeProcessList(base.concat(extra));
+      }
+
+      function mergeProfileTasks(existingTasks, profileTasks) {
+        const list = Array.isArray(existingTasks) ? existingTasks : [];
+        const existingIds = new Set(list.map((task) => task.id));
+        const existingKeys = new Set(list.map((task) => `${task.plato}::${task.proceso}`));
+        const addedIds = new Set();
+        profileTasks.forEach((task) => {
+          const key = `${task.plato}::${task.proceso}`;
+          if (existingKeys.has(key)) {
+            const target = list.find((item) => `${item.plato}::${item.proceso}` === key);
+            if (target && task.profileKey && !target.profileKey) {
+              target.profileKey = task.profileKey;
+            }
+            return;
+          }
+          const deps = Array.isArray(task.depende_de) ? task.depende_de : [];
+          const allowed = new Set([...existingIds, ...addedIds]);
+          task.depende_de = deps.filter((dep) => allowed.has(dep));
+          list.push(task);
+          existingIds.add(task.id);
+          existingKeys.add(key);
+          addedIds.add(task.id);
+        });
+        return list;
+      }
+
+      function buildTasksFromProfile(profile, dish, index, resources, suggestions) {
+        const dishName = dish.nombre;
+        const slug = `d${index + 1}`;
+        const inferred = !dish.tiempo || dish.origen !== 'PDF';
+        const baseTime = Math.max(1, computeBaseTime(dish) * (profile.timeMultiplier || 1));
+        const origin = 'profile';
+        const confidenceBase = clamp(profile.confidence ?? 0.6, 0.55, 0.7);
+        const level = inferLevelForDish(dishName);
+        const tasks = [];
+        const questions = [];
+        const guidedQuestions = [];
+        const uncertainties = [];
+        const estilos = mergeStyles([...DEFAULT_STYLES], detectStyleFlags(dishName));
+        const dishResourceHints = Array.isArray(dish.recursos_hint) ? dish.recursos_hint : [];
+        const mergedResourceHints = dishResourceHints.concat(
+          Array.isArray(profile.resourceHints) ? profile.resourceHints : []
+        );
+        const processes = resolveProfileProcesses(profile, dishName);
+        const addTask = (id, process, deps) => {
+          const verbSpec = VERB_MAP[process];
+          const phase = verbSpec?.phase || defaultPhaseForProcess(process);
+          const baseDuration = Number.isFinite(verbSpec?.baseMin)
+            ? verbSpec.baseMin
+            : estimateDuration(process, baseTime, dishName);
+          let duration = clamp(Math.round(baseDuration), 2, 180);
+          duration = clampDurationForProcess(process, duration, dishName);
+          const resourceInfo = resourceForProcess(
+            process,
+            resources,
+            suggestions,
+            guidedQuestions,
+            id,
+            dishName,
+            mergedResourceHints
+          );
+          const resourceIdValue = resourceInfo?.resourceId || null;
+          let verb = processToVerb(process, dishName);
+          if (profile.key === 'CARNE_REDUCCION' && process === 'SALTEAR') {
+            verb = 'sellar';
+          }
+          const name = process === 'REDUCIR' ? `reducir salsa de ${dishName}` : `${verb} ${dishName}`;
+          const task = buildTask(
+            id,
+            dishName,
+            withInferTag(name, inferred),
+            phase,
+            duration,
+            process,
+            resourceIdValue,
+            level,
+            deps,
+            origin,
+            confidenceBase,
+            resourceInfo
+          );
+          task.profileKey = profile.key;
+          task.origin = origin;
+          tasks.push(task);
+        };
+
+        processes.forEach((process, idx) => {
+          const prevId = idx > 0 ? `${slug}-prof-${idx}` : null;
+          const deps = prevId ? [prevId] : [];
+          addTask(`${slug}-prof-${idx + 1}`, process, deps);
+        });
+
+        if (inferred) {
+          tasks.forEach((task) => {
+            task.duracion_inferida = true;
+            task.confianza = Math.min(task.confianza, 0.6);
+          });
+        }
+
+        return { tasks, questions, guidedQuestions, uncertainties, estilos, profile };
+      }
+
       function buildTasksFromProcessList(processList, dish, index, resources, suggestions) {
         const dishName = dish.nombre;
         const slug = `d${index + 1}`;
@@ -4903,7 +5129,8 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           const baseDuration = Number.isFinite(verbSpec?.baseMin)
             ? verbSpec.baseMin
             : estimateDuration(process, baseTime, dishName);
-          const duration = clamp(Math.round(baseDuration + extraLoad), 2, 180);
+          let duration = clamp(Math.round(baseDuration + extraLoad), 2, 180);
+          duration = clampDurationForProcess(process, duration, dishName);
           const resourceInfo = resourceForProcess(
             process,
             resources,
@@ -4960,6 +5187,12 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           });
         }
 
+        const dishProfile = getDishProfile(dishName);
+        if (dishProfile) {
+          const profileResult = buildTasksFromProfile(dishProfile, dish, index, resources, suggestions);
+          mergeProfileTasks(tasks, profileResult.tasks || []);
+        }
+
         return { tasks, questions, guidedQuestions, uncertainties, estilos: styles };
       }
 
@@ -4969,6 +5202,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         const inferred = !dish.tiempo || dish.origen !== 'PDF';
         const level = inferLevelForDish(dishName);
         const patternProfile = getDishPatternProfile(dishName);
+        const dishProfile = getDishProfile(dishName);
         const timeMultiplier = patternProfile?.timeMultiplier || 1;
         const baseTime = Math.max(1, computeBaseTime(dish) * timeMultiplier);
         const origin = 'IA';
@@ -4983,6 +5217,9 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         const explicitProcesses = Array.isArray(dish.procesos)
           ? dish.procesos.filter(Boolean)
           : [];
+        if (!explicitProcesses.length && dishProfile) {
+          return buildTasksFromProfile(dishProfile, dish, index, resources, suggestions);
+        }
         const extraProcesses = Array.isArray(patternProfile?.extraProcesses)
           ? patternProfile.extraProcesses
           : [];
@@ -7937,7 +8174,7 @@ async function handlePdfFile(file) {
             if (confidence < LOW_CONFIDENCE) {
               addIssue({
                 id: `TASK_WARN_${task.id}`,
-                severity: 'warning',
+                severity: 'info',
                 code: 'TASK_LOW_CONFIDENCE',
                 messageHumano: `Baja confianza en tarea: ${taskName}.`,
                 entityType: 'task',

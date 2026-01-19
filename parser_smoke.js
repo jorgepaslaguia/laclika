@@ -23,12 +23,75 @@
         }
         const taskCount = planBuilt?.tareas?.length || 0;
         const phases = new Set((planBuilt?.tareas || []).map((task) => task.fase));
+        const tasksByDish = {};
+        const processesByDish = {};
+        (planBuilt?.tareas || []).forEach((task) => {
+          const dish = task.plato || task.dish || 'Plato';
+          if (!tasksByDish[dish]) {
+            tasksByDish[dish] = 0;
+          }
+          tasksByDish[dish] += 1;
+          if (!processesByDish[dish]) {
+            processesByDish[dish] = new Set();
+          }
+          if (task.proceso) {
+            processesByDish[dish].add(task.proceso);
+          }
+        });
+        const taskCounts = Object.values(tasksByDish);
+        const processCounts = Object.values(processesByDish).map((set) => set.size);
+        const tasksPerDishMin = taskCounts.length ? Math.min(...taskCounts) : 0;
+        const tasksPerDishMax = taskCounts.length ? Math.max(...taskCounts) : 0;
+        const procPerDishMin = processCounts.length ? Math.min(...processCounts) : 0;
+        const procPerDishMax = processCounts.length ? Math.max(...processCounts) : 0;
+        let warnings = null;
+        let infos = null;
+        let warningsAfter = null;
+        let infosAfter = null;
+        if (window.setPlan && window.state) {
+          const snapshot = window.plan ? JSON.parse(JSON.stringify(window.plan)) : window.EMPTY_PLAN || null;
+          window.setPlan(planBuilt, null, '', []);
+          warnings = (window.state.issues || []).filter((issue) => issue.severity === 'warning').length;
+          infos = (window.state.issues || []).filter((issue) => issue.severity === 'info').length;
+          if ((planBuilt?.tareas || []).length) {
+            if (typeof window.assignResourcesByHeuristic === 'function') {
+              window.assignResourcesByHeuristic({ silent: true });
+            }
+            if (typeof window.fillMissingDurations === 'function') {
+              window.fillMissingDurations({ silent: true });
+            }
+            if (typeof window.autoAssignBalanced === 'function') {
+              window.autoAssignBalanced({ phaseOnly: false, respectLocked: true, onlyUnassigned: true });
+            }
+            warningsAfter = (window.state.issues || []).filter((issue) => issue.severity === 'warning').length;
+            infosAfter = (window.state.issues || []).filter((issue) => issue.severity === 'info').length;
+          } else {
+            warningsAfter = warnings;
+            infosAfter = infos;
+          }
+          if (snapshot) {
+            window.setPlan(snapshot, null, '', []);
+          }
+        }
         const expect = fixture.expect || {};
         const platesOk = plateCount >= (expect.platesMin || 1);
         const tasksOk = taskCount >= (expect.tasksMin || 1);
         const phasesOk = phases.size >= (expect.phasesMin || 1);
-        ok = platesOk && tasksOk && phasesOk;
-        detail = `platos ${plateCount} tareas ${taskCount} fases ${phases.size}`;
+        const warningMax = Number.isFinite(expect.warningsMax) ? expect.warningsMax : 4;
+        const warningAfterMax = Number.isFinite(expect.warningsAfterMax) ? expect.warningsAfterMax : 1;
+        const warningsOk = warnings === null ? true : warnings <= warningMax;
+        const warningsAfterOk = warningsAfter === null ? true : warningsAfter <= warningAfterMax;
+        ok = platesOk && tasksOk && phasesOk && warningsOk && warningsAfterOk;
+        const warnLabel =
+          warnings === null
+            ? 'warnings n/a'
+            : `warnings ${warnings}→${warningsAfter ?? warnings}`;
+        const infoLabel = infos === null ? 'infos n/a' : `infos ${infos}→${infosAfter ?? infos}`;
+        detail =
+          `platos ${plateCount} tareas ${taskCount} fases ${phases.size} ` +
+          `tareas/plato ${tasksPerDishMin}-${tasksPerDishMax} ` +
+          `procesos/plato ${procPerDishMin}-${procPerDishMax} ` +
+          `${warnLabel} ${infoLabel}`;
       } catch (error) {
         ok = false;
         detail = error && error.message ? error.message : 'error';
