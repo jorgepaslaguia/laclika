@@ -64,6 +64,10 @@
     'loadUserSettings',
     'updatePdfStatus'
   ];
+  const emptyPlan =
+    (typeof window !== 'undefined' && (window.EMPTY_PLAN || window.DEFAULT_PLAN)) ||
+    (typeof DEFAULT_PLAN !== 'undefined' ? DEFAULT_PLAN : null) ||
+    { tareas: [], recursos: [], equipo: [], isEmpty: true };
 
   const getMissingCore = () =>
     CORE_REQUIRED.filter((name) => typeof window[name] !== 'function');
@@ -488,10 +492,28 @@
     }
     if (manualToggleBtn) {
       manualToggleBtn.addEventListener('click', () => {
-        setState({ manualTextOpen: !state.manualTextOpen });
-        render();
-        if (state.manualTextOpen && manualTextEl) {
-          manualTextEl.focus();
+        try {
+          if (typeof navigateTo === 'function') {
+            navigateTo('prep');
+          } else if (typeof setUIMode === 'function') {
+            setUIMode('prep', { scrollToUpload: true, focusManual: true });
+          }
+          if (typeof setState === 'function') {
+            setState({ manualTextOpen: true });
+          } else if (state && typeof state === 'object') {
+            state.manualTextOpen = true;
+          }
+          render();
+          if (manualTextEl) {
+            manualTextEl.focus();
+          }
+        } catch (error) {
+          if (typeof reportActionError === 'function') {
+            reportActionError(error);
+          } else {
+            console.error(error);
+          }
+          render();
         }
       });
     }
@@ -808,7 +830,7 @@
     on(btnResetSession, 'click', () => {
       localStorage.removeItem(LAST_PLAN_KEY);
       localStorage.removeItem(RECIPE_ACTIVE_KEY);
-      setPlan(EMPTY_PLAN, null, 'Sin menu cargado', []);
+      setPlan(emptyPlan, null, 'Sin menu cargado', []);
       if (typeof resetImportState === 'function') {
         resetImportState();
       }
@@ -1047,7 +1069,7 @@
       window.loadUserSettings();
     }
     loadRecipesFromStorage();
-    setPlan(EMPTY_PLAN, null, 'Sin menu cargado', []);
+    setPlan(emptyPlan, null, 'Sin menu cargado', []);
     if (typeof resetImportState === 'function') {
       resetImportState();
     }

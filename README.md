@@ -60,6 +60,24 @@ combinando análisis de texto, lógica de negocio y una interfaz interactiva.
 
 ---
 
+## Parser hardening
+
+- Segmentacion segura con deteccion de PDF plano, limites de transforms y trazabilidad en parseDiagnostics.
+- Deteccion de platos con scoring, limite dinamico de platos y deduplicacion por similitud.
+- Procesos con lista blanca de verbos, normalizacion unicode y ASAR -> HORNEAR.
+- Recursos inferidos por proceso con origen/confianza y avisos explicitos de inferido.
+- Bloqueo si no hay tareas (PARSE_FAILED_NO_TASKS), sin fallback silencioso a DEFAULT_PLAN.tareas.
+
+---
+
+## Menús de prueba
+
+- Fixtures: `parser_fixtures.js` (12 menus nivel 0..5).
+- Harness: `parser_smoke.js` (expone `runParserSmoke()`).
+- Ejecutar: abrir `index.html`, activar "Debug texto" y revisar la seccion "PARSER FIXTURES", o lanzar `runParserSmoke()` en consola.
+
+---
+
 ## Licencia
 
 Proyecto personal. Uso académico o demostrativo.
