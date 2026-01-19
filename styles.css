@@ -1,17 +1,22 @@
-﻿:root {
-        --bg: #f7f7f7;
-        --bg-soft: #efefef;
-        --ink: #000;
-        --muted: #4a4a4a;
-        --accent: #1f5fbf;
-        --warn: #b07b00;
-        --danger: #b23a3a;
-        --success: #2f7d4a;
-        --primary: #111111;
-        --secondary: #e2e2e2;
-        --line: #c7c7c7;
-        --ticket: #ffffff;
-        --done: #f0f0f0;
+:root {
+        --bg: #f2eee4;
+        --bg-soft: #ebe6dc;
+        --ink: #1c1a17;
+        --muted: #5c574f;
+        --border: #d2ccc2;
+        --accent: #b01b24;
+        --warn: #a06a24;
+        --danger: #b01b24;
+        --success: #2f5c47;
+        --primary: #121110;
+        --secondary: #e4ddd2;
+        --line: var(--border);
+        --ticket: #f9f6ef;
+        --done: #ede8df;
+        --shadow: 0 10px 30px rgba(17, 16, 14, 0.12);
+        --radius: 10px;
+        --font-sans: "Bahnschrift", "Segoe UI", "Trebuchet MS", "Tahoma", sans-serif;
+        --font-mono: "Cascadia Mono", "Consolas", "Courier New", monospace;
       }
 
       * {
@@ -20,15 +25,11 @@
 
       body {
         margin: 0;
-        font-family: Consolas, 'Courier New', monospace;
+        font-family: var(--font-mono);
         color: var(--ink);
-        background: repeating-linear-gradient(
-            0deg,
-            var(--bg) 0,
-            var(--bg) 24px,
-            var(--bg-soft) 24px,
-            var(--bg-soft) 25px
-          );
+        background-color: var(--bg);
+        background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.02) 0, rgba(0, 0, 0, 0.02) 1px, transparent 1px, transparent 5px),
+          linear-gradient(90deg, rgba(0, 0, 0, 0.015) 0, rgba(0, 0, 0, 0.015) 1px, transparent 1px, transparent 7px);
         min-height: 100vh;
         padding-top: 0;
       }
@@ -38,9 +39,32 @@
       }
 
       .app {
-        max-width: 1200px;
+        max-width: 1280px;
         margin: 0 auto;
         padding: 20px;
+      }
+
+      .prep-layout {
+        display: grid;
+        grid-template-columns: minmax(240px, 360px) minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .prep-sidebar,
+      .prep-main {
+        display: grid;
+        gap: 16px;
+      }
+
+      .kitchen-layout {
+        display: grid;
+        gap: 16px;
+      }
+
+      .kitchen-main {
+        display: grid;
+        gap: 16px;
       }
 
       .screen {
@@ -56,13 +80,15 @@
       }
 
       .library-topbar {
-        border: 1px solid var(--line);
+        border: 1px solid var(--border);
         padding: 14px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        background: #fff;
+        background: var(--ticket);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
       }
 
       .library-body {
@@ -84,9 +110,9 @@
       }
 
       .recipe-card {
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         padding: 10px;
-        background: #fff;
+        background: var(--ticket);
         display: grid;
         gap: 6px;
       }
@@ -100,6 +126,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.1em;
+        font-family: var(--font-sans);
       }
 
       .recipe-meta,
@@ -115,13 +142,14 @@
       }
 
       .topbar {
-        border-bottom: 1px solid var(--line);
+        border-bottom: 1px solid var(--border);
         padding: 8px 14px;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 12px;
         align-items: center;
-        background: #fff;
+        background: var(--ticket);
+        box-shadow: 0 8px 18px rgba(16, 14, 12, 0.08);
         position: sticky;
         top: 0;
         left: 0;
@@ -185,10 +213,11 @@
 
       .nav-tabs .btn {
         border-bottom: 2px solid transparent;
+        font-family: var(--font-sans);
       }
 
       .nav-tabs .btn.active {
-        border-bottom-color: var(--ink);
+        border-bottom-color: var(--accent);
       }
 
       .badge-button {
@@ -228,12 +257,17 @@
 
       .brand-name {
         font-size: 11px;
-        letter-spacing: 0.16em;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        font-family: var(--font-sans);
       }
 
       .brand-context {
         font-size: 13px;
         font-weight: 700;
+        font-family: var(--font-sans);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
       }
 
       .status-strip {
@@ -243,6 +277,7 @@
         align-items: center;
         font-size: 11px;
         justify-content: center;
+        font-family: var(--font-sans);
       }
 
       .service-panel {
@@ -264,6 +299,7 @@
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        font-family: var(--font-sans);
       }
 
       body.expert .status-notes {
@@ -274,6 +310,7 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        font-family: var(--font-sans);
       }
 
       .status-badge.health::before {
@@ -310,13 +347,14 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: #fff;
-        border-top: 1px dashed var(--line);
+        background: var(--ticket);
+        border-top: 1px dashed var(--border);
         padding: 10px 14px;
         display: flex;
         justify-content: center;
         gap: 10px;
         z-index: 20;
+        box-shadow: 0 -8px 18px rgba(16, 14, 12, 0.08);
       }
 
       body.mode-prep .kitchen-footer {
@@ -328,18 +366,20 @@
         align-items: center;
         gap: 6px;
         padding: 4px 8px;
-        border-radius: 4px;
-        border: 1px solid var(--line);
+        border-radius: 999px;
+        border: 1px solid var(--border);
         text-transform: uppercase;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.14em;
         font-weight: 700;
-        background: #fff;
+        background: var(--ticket);
+        font-family: var(--font-sans);
       }
 
       .status-badge.phase {
         border-color: var(--ink);
         padding: 6px 10px;
         font-size: 12px;
+        border-radius: 6px;
       }
 
       .status-badge.ok {
@@ -365,10 +405,12 @@
         align-items: center;
         gap: 6px;
         padding: 4px 8px;
-        border: 1px dashed var(--line);
-        border-radius: 4px;
+        border: 1px dashed var(--border);
+        border-radius: 999px;
         font-weight: 700;
         letter-spacing: 0.08em;
+        background: var(--ticket);
+        font-family: var(--font-mono);
       }
 
       #phase-state,
@@ -381,6 +423,7 @@
         text-transform: uppercase;
         letter-spacing: 0.2em;
         color: var(--muted);
+        font-family: var(--font-sans);
       }
 
       .value {
@@ -402,6 +445,7 @@
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+        font-family: var(--font-sans);
       }
 
       .summary-meta {
@@ -451,11 +495,12 @@
 
       .more-menu-panel {
         margin-top: 6px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--border);
         padding: 8px;
-        background: #fff;
+        background: var(--ticket);
         display: none;
         gap: 6px;
+        border-radius: 8px;
       }
 
       .more-menu[open] .more-menu-panel {
@@ -492,27 +537,28 @@
       }
 
       .btn {
-        border: 1px solid var(--line);
+        border: 1px solid var(--border);
         background: var(--secondary);
         color: var(--ink);
-        padding: 6px 10px;
+        padding: 7px 12px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.1em;
         font-size: 11px;
-        font-family: inherit;
+        font-family: var(--font-sans);
         cursor: pointer;
+        border-radius: 6px;
       }
 
       .btn.ghost {
         background: transparent;
-        color: var(--accent);
-        border-color: var(--accent);
+        color: var(--ink);
+        border-color: var(--border);
       }
 
       .btn.primary {
-        background: var(--primary);
+        background: var(--accent);
         color: #fff;
-        border-color: var(--primary);
+        border-color: var(--accent);
       }
 
       .btn.success {
@@ -528,15 +574,18 @@
       }
 
       .btn:disabled {
-        opacity: 0.4;
+        opacity: 0.45;
         cursor: not-allowed;
       }
 
       .section {
         margin-top: 16px;
-        border: 1px solid var(--line);
-        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px;
         background: var(--ticket);
+        box-shadow: var(--shadow);
+        position: relative;
       }
 
       .wizard {
@@ -546,8 +595,8 @@
       }
 
       .step {
-        border: 1px solid var(--line);
-        background: #fff;
+        border: 1px solid var(--border);
+        background: var(--ticket);
         padding: 12px;
         display: grid;
         gap: 10px;
@@ -557,7 +606,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        border-bottom: 1px solid var(--line);
+        border-bottom: 1px solid var(--border);
         padding-bottom: 6px;
       }
 
@@ -566,8 +615,9 @@
         text-transform: uppercase;
         letter-spacing: 0.18em;
         padding: 4px 8px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--border);
         background: var(--bg-soft);
+        font-family: var(--font-sans);
       }
 
       .step-title {
@@ -575,6 +625,7 @@
         font-weight: 700;
         letter-spacing: 0.12em;
         text-transform: uppercase;
+        font-family: var(--font-sans);
       }
 
       .step-body {
@@ -590,11 +641,12 @@
       }
 
       .config-block {
-        border: 1px dashed var(--line);
-        padding: 8px;
-        background: #fff;
+        border: 1px dashed var(--border);
+        padding: 10px;
+        background: var(--ticket);
         display: grid;
         gap: 6px;
+        border-radius: 6px;
       }
 
       .config-row {
@@ -614,20 +666,56 @@
       }
 
       .section-title {
-        font-size: 16px;
-        letter-spacing: 0.18em;
+        font-size: 13px;
+        letter-spacing: 0.22em;
         text-transform: uppercase;
         margin-bottom: 10px;
+        font-family: var(--font-sans);
+        position: relative;
+      }
+
+      .section-title::after {
+        content: '';
+        display: block;
+        margin-top: 8px;
+        border-top: 2px solid transparent;
+        border-image: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 12px) 1;
+        opacity: 0.7;
+      }
+
+      .ticket-header {
+        font-family: var(--font-sans);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 12px;
+      }
+
+      .ticket-divider {
+        position: relative;
+        height: 10px;
+        margin: 8px 0;
+      }
+
+      .ticket-divider::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 2px solid transparent;
+        border-image: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 12px) 1;
+        opacity: 0.7;
       }
 
       .drop-zone {
-        border: 1px dashed var(--line);
-        background: #fff;
+        border: 1px dashed var(--border);
+        background: var(--ticket);
         padding: 18px;
         text-align: center;
         cursor: pointer;
         display: grid;
         gap: 6px;
+        border-radius: 8px;
       }
 
       .drop-zone .btn.primary {
@@ -637,7 +725,7 @@
 
       .drop-zone.hover {
         border-color: var(--ink);
-        background: #f0f0f0;
+        background: var(--bg-soft);
       }
 
       .drop-title {
@@ -645,6 +733,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        font-family: var(--font-sans);
       }
 
       .drop-sub {
@@ -657,10 +746,11 @@
         min-height: 90px;
         margin-top: 8px;
         padding: 8px;
-        border: 1px dashed var(--line);
-        font-family: inherit;
+        border: 1px dashed var(--border);
+        font-family: var(--font-mono);
         font-size: 12px;
-        background: #fff;
+        background: var(--ticket);
+        border-radius: 6px;
       }
 
       .text-input.debug {
@@ -668,11 +758,11 @@
       }
 
       .alert-box {
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         padding: 10px;
         display: grid;
         gap: 6px;
-        background: #fff;
+        background: var(--ticket);
       }
 
       .alert-title {
@@ -680,15 +770,16 @@
         text-transform: uppercase;
         letter-spacing: 0.12em;
         font-weight: 700;
+        font-family: var(--font-sans);
       }
 
       .alert-panel {
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         padding: 10px;
         margin-top: 8px;
         display: none;
         gap: 10px;
-        background: #fff;
+        background: var(--ticket);
       }
 
       .alert-panel.show {
@@ -696,18 +787,18 @@
       }
 
       .alert-section {
-        border-top: 1px dashed var(--line);
+        border-top: 1px dashed var(--border);
         padding-top: 8px;
         display: grid;
         gap: 6px;
       }
 
       .debug-panel {
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         margin-top: 8px;
         display: none;
         padding: 8px;
-        background: #fff;
+        background: var(--ticket);
       }
 
       .debug-panel.show {
@@ -720,11 +811,12 @@
         text-transform: uppercase;
         letter-spacing: 0.1em;
         margin-bottom: 6px;
+        font-family: var(--font-sans);
       }
 
       .debug-panel .note.debug {
         font-size: 12px;
-        border-top: 1px dashed var(--line);
+        border-top: 1px dashed var(--border);
         padding-top: 6px;
         margin-top: 6px;
         white-space: pre-wrap;
@@ -735,6 +827,10 @@
         flex-wrap: wrap;
         gap: 6px;
         margin-top: 8px;
+        padding: 8px;
+        border: 1px dashed var(--border);
+        border-radius: 6px;
+        background: var(--ticket);
       }
 
       .table-meta {
@@ -747,17 +843,17 @@
 
       .plan-issues {
         margin-top: 8px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--border);
         padding: 8px;
         display: grid;
         gap: 6px;
-        background: #fff;
+        background: var(--ticket);
       }
 
       .assign-grid {
         display: grid;
         gap: 0;
-        border-top: 1px dashed var(--line);
+        border-top: 1px dashed var(--border);
         margin-top: 8px;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
@@ -775,11 +871,12 @@
       }
 
       .issue-card {
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         padding: 10px;
-        background: #fff;
+        background: var(--ticket);
         display: grid;
         gap: 6px;
+        border-radius: 6px;
       }
 
       .issue-card.error {
@@ -797,6 +894,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        font-family: var(--font-sans);
       }
 
       .issue-meta {
@@ -811,9 +909,9 @@
       }
 
       .context-block {
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         padding: 10px;
-        background: #fff;
+        background: var(--ticket);
       }
 
       .ready-title {
@@ -821,6 +919,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        font-family: var(--font-sans);
       }
 
       .assign-row {
@@ -828,7 +927,7 @@
         grid-template-columns: minmax(180px, 1.2fr) 0.7fr 0.7fr 0.9fr 0.6fr;
         gap: 8px;
         padding: 6px 0;
-        border-bottom: 1px dashed var(--line);
+        border-bottom: 1px dashed var(--border);
         font-size: 11px;
         align-items: center;
         min-width: 640px;
@@ -848,6 +947,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        font-family: var(--font-sans);
       }
 
       .assign-row.incomplete,
@@ -886,10 +986,12 @@
       .badge {
         display: inline-block;
         font-size: 9px;
-        padding: 2px 4px;
-        border: 1px dashed var(--line);
+        padding: 3px 6px;
+        border: 1px solid var(--border);
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.14em;
+        font-family: var(--font-sans);
+        border-radius: 3px;
       }
 
       .badge.incomplete {
@@ -903,7 +1005,22 @@
       }
 
       .badge.state {
-        color: var(--ink);
+        color: var(--accent);
+        border-color: var(--accent);
+        background: rgba(176, 27, 36, 0.08);
+      }
+
+      .stamp {
+        color: var(--accent);
+        border: 2px solid var(--accent);
+        padding: 4px 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-weight: 700;
+        background: rgba(176, 27, 36, 0.08);
+        transform: rotate(-3deg);
+        border-radius: 4px;
+        font-family: var(--font-sans);
       }
 
       .field-missing {
@@ -924,16 +1041,16 @@
       input[type='number'],
       input[type='text'] {
         width: 100%;
-        font-family: inherit;
+        font-family: var(--font-mono);
         font-size: 12px;
-        padding: 4px;
-        border: 1px dashed var(--line);
-        background: #fff;
+        padding: 6px;
+        border: 1px dashed var(--border);
+        background: var(--ticket);
       }
 
       .validation {
         margin-top: 8px;
-        border-top: 1px dashed var(--line);
+        border-top: 1px dashed var(--border);
         padding-top: 8px;
       }
 
@@ -967,8 +1084,8 @@
         gap: 6px;
         align-items: center;
         padding: 6px;
-        border: 1px dashed var(--line);
-        background: #fff;
+        border: 1px dashed var(--border);
+        background: var(--ticket);
         font-size: 11px;
       }
 
@@ -988,9 +1105,9 @@
 
       .issue-panel {
         margin-top: 6px;
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         padding: 6px;
-        background: #fff;
+        background: var(--ticket);
         display: none;
       }
 
@@ -1000,9 +1117,11 @@
 
       .settings-panel {
         margin-top: 16px;
-        border: 1px solid var(--line);
-        padding: 8px;
-        background: #fff;
+        border: 1px solid var(--border);
+        padding: 10px;
+        background: var(--ticket);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
       }
 
       .settings-status-row {
@@ -1048,6 +1167,9 @@
 
       .settings-panel > summary {
         cursor: pointer;
+        font-family: var(--font-sans);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
       }
 
       .panel-header {
@@ -1056,7 +1178,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        border-bottom: 1px solid var(--line);
+        border-bottom: 1px solid var(--border);
         padding-bottom: 6px;
         margin-bottom: 8px;
       }
@@ -1065,6 +1187,7 @@
         font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.14em;
+        font-family: var(--font-sans);
       }
 
       .panel-actions {
@@ -1075,12 +1198,13 @@
       }
 
       .settings-block {
-        border: 1px solid var(--line);
-        padding: 8px;
+        border: 1px solid var(--border);
+        padding: 10px;
         display: grid;
         gap: 6px;
         margin-bottom: 8px;
-        background: #fff;
+        background: var(--ticket);
+        border-radius: calc(var(--radius) - 4px);
       }
 
       .settings-body {
@@ -1096,6 +1220,9 @@
       details.settings-block > summary {
         cursor: pointer;
         padding: 8px;
+        font-family: var(--font-sans);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
       }
 
       details.settings-block > .controls,
@@ -1107,10 +1234,11 @@
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.12em;
+        font-family: var(--font-sans);
       }
 
       .block-details {
-        border-top: 1px dashed var(--line);
+        border-top: 1px dashed var(--border);
         padding-top: 6px;
         display: grid;
         gap: 6px;
@@ -1121,6 +1249,7 @@
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.12em;
+        font-family: var(--font-sans);
       }
 
       .danger-zone {
@@ -1225,11 +1354,12 @@
       }
 
       .resource-item {
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         padding: 8px;
-        background: #fff;
+        background: var(--ticket);
         display: grid;
         gap: 4px;
+        border-radius: 6px;
       }
 
       .resource-item[data-state='occupied'] {
@@ -1255,6 +1385,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        font-family: var(--font-sans);
       }
 
       .resource-icon {
@@ -1263,7 +1394,7 @@
         justify-content: center;
         width: 20px;
         height: 20px;
-        border: 1px solid var(--line);
+        border: 1px solid var(--border);
         font-size: 10px;
       }
 
@@ -1279,15 +1410,16 @@
       }
 
       .person-column {
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         padding: 10px;
-        background: #fff;
+        background: var(--ticket);
         display: grid;
         gap: 8px;
+        border-radius: 8px;
       }
 
       .person-header {
-        border-bottom: 1px dashed var(--line);
+        border-bottom: 1px dashed var(--border);
         padding-bottom: 6px;
         display: grid;
         gap: 4px;
@@ -1296,6 +1428,7 @@
       .person-name {
         font-size: 13px;
         font-weight: 700;
+        font-family: var(--font-sans);
       }
 
       .person-role {
@@ -1306,7 +1439,8 @@
       .person-state {
         font-size: 11px;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.12em;
+        font-family: var(--font-sans);
       }
 
       .person-lanes {
@@ -1325,6 +1459,7 @@
         text-transform: uppercase;
         letter-spacing: 0.1em;
         color: var(--muted);
+        font-family: var(--font-sans);
       }
 
       .person-state.ready {
@@ -1341,21 +1476,42 @@
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        font-family: var(--font-sans);
       }
 
       .lane {
         display: grid;
         gap: 8px;
         min-height: 120px;
+        counter-reset: ticket;
       }
 
       .ticket {
-        border: 1px dashed var(--line);
-        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 12px 10px 10px;
         background: var(--ticket);
+        background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.02) 0, rgba(0, 0, 0, 0.02) 1px, transparent 1px, transparent 6px);
         display: grid;
-        gap: 4px;
+        gap: 6px;
+        box-shadow: 0 8px 18px rgba(17, 16, 14, 0.1);
+      }
+
+      .lane .ticket {
         cursor: pointer;
+        position: relative;
+      }
+
+      .lane .ticket::before {
+        counter-increment: ticket;
+        content: counter(ticket, decimal-leading-zero);
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+        font-family: var(--font-mono);
       }
 
       .ticket.pending {
@@ -1364,7 +1520,6 @@
 
       .ticket.active {
         border-left: 4px solid var(--ink);
-        border-width: 2px;
       }
 
       .ticket.done {
@@ -1374,7 +1529,7 @@
 
       .ticket.blocked {
         border-left: 4px solid var(--danger);
-        background: #fcecec;
+        background: rgba(176, 27, 36, 0.06);
       }
 
       .ticket.flash {
@@ -1382,10 +1537,22 @@
       }
 
       .ticket-title {
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.14em;
+        font-family: var(--font-sans);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .ticket-body {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-family: var(--font-mono);
+        color: var(--ink);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1403,17 +1570,27 @@
         display: flex;
         justify-content: space-between;
         gap: 6px;
+        padding-top: 4px;
+        border-top: 1px dashed var(--border);
+      }
+
+      .ticket-line:first-of-type {
+        padding-top: 0;
+        border-top: none;
       }
 
       .ticket-meta {
         font-size: 10px;
         color: var(--muted);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
       }
 
       .ticket-alert {
         color: var(--ink);
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        font-family: var(--font-sans);
       }
 
       .ticket-actions .btn {
@@ -1424,7 +1601,8 @@
         font-size: 16px;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.16em;
+        font-family: var(--font-sans);
       }
 
       .timer.overdue {
@@ -1437,6 +1615,46 @@
         color: var(--muted);
         text-align: center;
         padding: 10px;
+        font-family: var(--font-sans);
+      }
+
+      .empty-state {
+        display: none;
+        text-align: center;
+        gap: 10px;
+        align-items: center;
+        justify-items: center;
+        padding: 28px 18px;
+        max-width: 520px;
+        margin: 0 auto;
+      }
+
+      .empty-state .empty-title {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-family: var(--font-sans);
+        font-weight: 700;
+      }
+
+      .empty-state .empty-sub {
+        font-size: 12px;
+        color: var(--muted);
+        max-width: 360px;
+      }
+
+      body.plan-empty #prep-empty,
+      body.plan-empty #kitchen-empty {
+        display: grid;
+      }
+
+      body.plan-empty .prep-main #prep-screen {
+        display: none;
+      }
+
+      body.plan-empty #resources,
+      body.plan-empty #line {
+        display: none;
       }
 
       .finish-screen {
@@ -1477,6 +1695,10 @@
         .person-lanes {
           grid-template-columns: 1fr;
         }
+
+        .prep-layout {
+          grid-template-columns: 1fr;
+        }
       }
 
       body.compact .assign-row {
@@ -1504,11 +1726,6 @@
       }
 
       body.mode-kitchen .prep-only {
-        display: none;
-      }
-
-      body.mode-kitchen #phase-state,
-      body.mode-kitchen #phase-timer-note {
         display: none;
       }
 
@@ -1558,7 +1775,7 @@
       }
 
       body.mode-kitchen .ticket-line {
-        font-size: 12px;
+        font-size: 11px;
       }
 
       body.mode-kitchen .person-name {
@@ -1596,3 +1813,4 @@
           justify-content: flex-start;
         }
       }
+

@@ -8053,7 +8053,7 @@ async function handlePdfFile(file) {
       function renderFilters() {
         const filtersWrap = filterPlatoEl ? filterPlatoEl.closest('.filters') : null;
         const hasTasks = Boolean(plan && Array.isArray(plan.tareas) && plan.tareas.length);
-        const inPrepView = state && (state.uiMode === 'prep' || state.view === 'prep');
+        const inPrepView = state && state.uiMode === 'prep';
         const isEmptyPlan = Boolean(plan && plan.isEmpty);
 
         if (!hasTasks || isEmptyPlan || !inPrepView || !filterPlatoEl || !filterFaseEl) {
@@ -10150,6 +10150,7 @@ async function handlePdfFile(file) {
                   const actionLabel = shortProcessLabel(task.proceso);
                   const dishLabel = shortDishLabel(task.plato);
                   const resourceLabel = getShortResourceLabel(task);
+                  const assignedLabel = person?.nombre || 'Sin asignar';
                   const resourceIcon = (() => {
                     const key = normalizeResourceName(task.resourceTypeKey || task.recurso_id || '');
                     if (key === 'HORNO') return 'H';
@@ -10172,8 +10173,10 @@ async function handlePdfFile(file) {
                       : 'PENDIENTE';
                   return `
                     <div class="${classes}" data-action="toggle" data-task-id="${task.id}">
-                      <div class="ticket-title">${actionLabel} | ${dishLabel}${inferIcon}</div>
+                      <div class="ticket-title">${dishLabel}${inferIcon}</div>
+                      <div class="ticket-body">${actionLabel}</div>
                       <div class="ticket-line"><span>${resourceIcon} ${resourceLabel}</span><span>${durationLabel}</span></div>
+                      <div class="ticket-line"><span>Asignado</span><span>${assignedLabel}</span></div>
                       <div class="ticket-line"><span>Estado</span><span class="badge state">${stateText}</span></div>
                     </div>
                   `;
@@ -10437,6 +10440,10 @@ function updateControls() {
         document.body.classList.toggle('expert', state.expertMode);
         document.body.classList.toggle('service-active', state.phaseStatus !== 'idle');
         document.body.classList.toggle('manual-open', state.manualTextOpen);
+        document.body.classList.toggle(
+          'plan-empty',
+          Boolean(plan?.isEmpty || !(plan?.tareas?.length))
+        );
         if (advancedPanelEl) {
           advancedPanelEl.open = state.advancedOpen;
         }

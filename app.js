@@ -309,6 +309,8 @@
     const saveAsRecipeBtn = document.getElementById('btn-save-as-new');
     const manualToggleBtn = document.getElementById('manual-toggle');
     const manualTextEl = document.getElementById('menuTextArea');
+    const emptyUploadBtn = document.getElementById('empty-upload-btn');
+    const emptyPasteBtn = document.getElementById('empty-paste-btn');
     const debugToggleEl = document.getElementById('debug-toggle');
     const expertToggleEl = document.getElementById('expert-toggle');
     const alertsLinesEl = document.getElementById('alerts-lines');
@@ -459,6 +461,41 @@
 
     on(pdfInputEl, 'change', (event) => handlePdfFile(event.target.files[0]));
     on(parseTextBtn, 'click', handleManualText);
+    if (emptyUploadBtn) {
+      emptyUploadBtn.addEventListener('click', () => {
+        if (pdfInputEl) {
+          pdfInputEl.click();
+        }
+      });
+    }
+    if (emptyPasteBtn) {
+      emptyPasteBtn.addEventListener('click', () => {
+        try {
+          if (state?.uiMode !== 'prep') {
+            if (typeof navigateTo === 'function') {
+              navigateTo('prep');
+            } else if (typeof setUIMode === 'function') {
+              setUIMode('prep', { scrollToUpload: true, focusManual: true });
+            }
+          }
+          if (manualToggleBtn) {
+            manualToggleBtn.click();
+            return;
+          }
+          if (typeof setState === 'function') {
+            setState({ manualTextOpen: true });
+          } else if (state && typeof state === 'object') {
+            state.manualTextOpen = true;
+          }
+          render();
+          if (manualTextEl) {
+            manualTextEl.focus();
+          }
+        } catch (error) {
+          reportActionError(error);
+        }
+      });
+    }
     if (newRecipeBtn) {
       newRecipeBtn.addEventListener('click', () => {
         const useDefaults = Boolean(newRecipeDefaultsEl && newRecipeDefaultsEl.checked);

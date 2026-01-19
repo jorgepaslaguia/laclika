@@ -52,243 +52,279 @@
 
       <section id="plan-screen" class="screen plan-screen">
         <section id="view-prep" class="prep-only">
-          <section class="section" id="upload">
-          <div class="section-title">Cargar menu</div>
-          <div id="pdfDropZone" class="drop-zone">
-            <button class="btn primary" type="button">Cargar menu (PDF o texto)</button>
-            <div class="drop-sub">Arrastra y suelta aqui o pulsa el boton</div>
-          </div>
-          <div id="pdfStatus" class="note">Sin archivo cargado.</div>
-          <details id="pdf-error-panel" class="note" style="display:none">
-            <summary>Detalles del error</summary>
-            <pre id="pdf-error-text" class="note"></pre>
-          </details>
-          <div class="controls">
-            <button id="manual-toggle" class="btn ghost" type="button">Editar texto</button>
-            <label class="note expert-only">
-              <input id="debug-toggle" type="checkbox" />
-              Debug texto
-            </label>
-          </div>
-          <div id="manual-box" class="manual-box">
-            <textarea
-              id="menuTextArea"
-              class="text-input"
-              placeholder="Pega el texto del menu aqui si es necesario"
-            ></textarea>
-            <div class="controls">
-              <button id="btnInterpret" class="btn ghost">Interpretar texto</button>
-            </div>
-          </div>
-          <details id="debug-panel" class="debug-panel expert-only">
-            <summary>Debug</summary>
-            <div id="smoke-results" class="note debug"></div>
-            <textarea id="debug-text" class="text-input debug" readonly></textarea>
-          </details>
-          </section>
-
-          <section class="section" id="ai-summary">
-            <div class="section-title">Resumen de interpretacion</div>
-            <div id="ai-summary-content" class="note">Sin interpretacion aun.</div>
-            <div id="alerts-box" class="alert-box">
-              <div class="alert-title">Alertas (<span id="alerts-count">0</span>)</div>
-              <div id="alerts-lines" class="note">Sin alertas.</div>
-              <div class="controls">
-                <button id="alerts-review" class="btn ghost">Ver</button>
-                <button id="alerts-dismiss" class="btn ghost">Ignorar por ahora</button>
-              </div>
-            </div>
-            <div id="alerts-panel" class="alert-panel">
-              <div class="alert-section">
-                <div class="label">Recursos faltantes</div>
-                <div id="alerts-missing" class="note">Sin recursos faltantes.</div>
-                <button id="alerts-add-resources" class="btn ghost mini-btn">
-                  Anadir recursos sugeridos
-                </button>
-              </div>
-              <div class="alert-section">
-                <div class="label">Preguntas guiadas</div>
-                <div id="questions-list" class="questions"></div>
-              </div>
-              <div class="alert-section" id="alerts-fixes-section" style="display:none">
-                <div class="label">Correcciones aplicadas</div>
-                <div id="alerts-fixes" class="note">Sin correcciones.</div>
-              </div>
-            </div>
-          </section>
-
-          <section class="section" id="config">
-            <div class="section-title">Recursos y equipo</div>
-            <div class="config-grid">
-              <div class="config-block">
-                <div class="label">Recursos</div>
-                <div id="resource-summary" class="note"></div>
-                <div id="resource-editor"></div>
-                <button id="add-resource" class="btn ghost mini-btn">+ Anadir recurso</button>
-              </div>
-              <div class="config-block">
-                <div class="label">Equipo</div>
-                <div id="team-editor"></div>
-                <button id="add-person" class="btn ghost mini-btn">+ Anadir persona</button>
-              </div>
-            </div>
-            <div class="controls">
-            </div>
-          </section>
-
-          <details id="settings-panel" class="settings-panel">
-            <summary class="panel-title">Ajustes</summary>
-            <div class="settings-body">
-              <div id="settings-status" class="settings-block">
-                <div class="block-title">Estado del plan</div>
-                <div class="settings-status-row">
-                  <div id="settings-state" class="summary-status"></div>
-                  <div id="settings-counts" class="summary-meta"></div>
+          <div class="prep-layout">
+            <aside class="prep-sidebar">
+              <section class="section" id="upload">
+                <div class="section-title">Cargar menu</div>
+                <div id="pdfDropZone" class="drop-zone">
+                  <button class="btn primary" type="button">Cargar menu (PDF o texto)</button>
+                  <div class="drop-sub">Arrastra y suelta aqui o pulsa el boton</div>
                 </div>
-                <div id="plan-status" class="note"></div>
-              </div>
-
-              <div class="settings-block">
-                <div class="block-title">Correccion guiada</div>
-                <div id="settings-actions" class="controls">
-                  <button id="btn-fix-all" class="btn primary">Resolver todo automaticamente</button>
-                  <button id="btn-assign-resources" class="btn ghost">Asignar recursos</button>
-                  <button id="btn-autoassign-balanced" class="btn ghost">Autoasignar equilibrado</button>
-                  <button id="btn-fill-durations" class="btn ghost">Autocompletar duraciones</button>
-                  <button id="btn-start-service" class="btn success">Iniciar servicio</button>
-                </div>
-                <div id="settings-issues-toggle" class="controls">
-                  <button id="btn-toggle-issues" class="btn ghost">Ver problemas</button>
-                </div>
-                <div id="settings-issues" class="settings-issues">
-                  <div id="validation-list" class="validation"></div>
-                </div>
-              </div>
-
-              <div class="settings-block">
-                <div class="block-title">Sesion</div>
+                <div id="pdfStatus" class="note">Sin archivo cargado.</div>
+                <details id="pdf-error-panel" class="note" style="display:none">
+                  <summary>Detalles del error</summary>
+                  <pre id="pdf-error-text" class="note"></pre>
+                </details>
                 <div class="controls">
-                  <button id="continue-session" class="btn ghost">Continuar ultima sesion</button>
-                  <button id="reset-session" class="btn ghost">Reset sesion</button>
-                </div>
-              </div>
-
-              <details id="settings-expert" class="settings-block">
-                <summary class="block-title">Modo experto</summary>
-                <div class="settings-expert-body">
-                  <label class="note">
-                    <input id="expert-toggle" type="checkbox" />
-                    Activar modo experto
+                  <button id="manual-toggle" class="btn ghost" type="button">Editar texto</button>
+                  <label class="note expert-only">
+                    <input id="debug-toggle" type="checkbox" />
+                    Debug texto
                   </label>
-
-                  <div class="settings-expert-panel expert-only">
-                    <div class="settings-block">
-                      <div class="block-title">Gestion de recetas</div>
-                      <div class="controls">
-                        <button id="btn-save-recipe" class="btn">Guardar receta</button>
-                        <button id="btn-save-as-new" class="btn ghost">Guardar como nueva</button>
-                      </div>
-                    </div>
-
-                    <div class="settings-block">
-                      <div class="block-title">Optimizacion</div>
-                      <div class="controls">
-                        <button id="btn-rebalance-team" class="btn">Reequilibrar equipo</button>
-                        <button id="btn-recalc-route" class="btn ghost">Recalcular ruta optima</button>
-                      </div>
-                    </div>
-
-                    <div class="settings-block service-only">
-                      <div class="block-title">Control de servicio</div>
-                      <div class="controls">
-                        <button id="btn-approve-plan" class="btn ghost">Aprobar y programar</button>
-                        <button id="btn-phase-prev" class="btn ghost">Retroceder</button>
-                        <button id="btn-phase-next" class="btn ghost">Avanzar</button>
-                        <button id="btn-phase-skip" class="btn ghost">Saltar</button>
-                      </div>
-                    </div>
+                </div>
+                <div id="manual-box" class="manual-box">
+                  <textarea
+                    id="menuTextArea"
+                    class="text-input"
+                    placeholder="Pega el texto del menu aqui si es necesario"
+                  ></textarea>
+                  <div class="controls">
+                    <button id="btnInterpret" class="btn ghost">Interpretar texto</button>
                   </div>
                 </div>
-              </details>
-            </div>
-          </details>
+                <details id="debug-panel" class="debug-panel expert-only">
+                  <summary>Debug</summary>
+                  <div id="smoke-results" class="note debug"></div>
+                  <textarea id="debug-text" class="text-input debug" readonly></textarea>
+                </details>
+              </section>
 
-          <section id="prep-screen" class="prep-screen">
-          <section class="section" id="prep-issues">
-            <div class="section-title">Que falta para empezar</div>
-            <div id="prep-issues-grid" class="issue-grid"></div>
-          </section>
-          <section class="section" id="review">
-            <div class="section-title">Revisar tareas</div>
-            <div class="table-meta">
-              <div id="incomplete-count" class="note">Errores bloqueantes: 0 | Avisos: 0</div>
-              <div id="normalized-count" class="note"></div>
-              <label class="note">
-                <input id="toggle-compact" type="checkbox" />
-                Modo compacto
-              </label>
-            </div>
-            <div class="filters">
-              <select id="filter-plato"></select>
-              <select id="filter-fase"></select>
-              <label class="note">
-                <input id="filter-errors" type="checkbox" />
-                Mostrar todas
-              </label>
-              <label class="note">
-                <input id="filter-no-duration" type="checkbox" />
-                Sin duracion
-              </label>
-              <label class="note">
-                <input id="filter-no-resource" type="checkbox" />
-                Sin recurso requerido
-              </label>
-            </div>
-            <div id="assignment-list" class="assign-grid"></div>
-          </section>
-          <section class="section" id="prep-context">
-            <div class="section-title">Contexto</div>
-            <div class="context-grid">
-              <div class="context-block">
-                <div class="label">Recursos disponibles</div>
-                <div id="prep-resources" class="note"></div>
+              <section class="section" id="ai-summary">
+                <div class="section-title">Resumen de interpretacion</div>
+                <div id="ai-summary-content" class="note">Sin interpretacion aun.</div>
+                <div id="alerts-box" class="alert-box">
+                  <div class="alert-title">Alertas (<span id="alerts-count">0</span>)</div>
+                  <div id="alerts-lines" class="note">Sin alertas.</div>
+                  <div class="controls">
+                    <button id="alerts-review" class="btn ghost">Ver</button>
+                    <button id="alerts-dismiss" class="btn ghost">Ignorar por ahora</button>
+                  </div>
+                </div>
+                <div id="alerts-panel" class="alert-panel">
+                  <div class="alert-section">
+                    <div class="label">Recursos faltantes</div>
+                    <div id="alerts-missing" class="note">Sin recursos faltantes.</div>
+                    <button id="alerts-add-resources" class="btn ghost mini-btn">
+                      Anadir recursos sugeridos
+                    </button>
+                  </div>
+                  <div class="alert-section">
+                    <div class="label">Preguntas guiadas</div>
+                    <div id="questions-list" class="questions"></div>
+                  </div>
+                  <div class="alert-section" id="alerts-fixes-section" style="display:none">
+                    <div class="label">Correcciones aplicadas</div>
+                    <div id="alerts-fixes" class="note">Sin correcciones.</div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="section" id="config">
+                <div class="section-title">Recursos y equipo</div>
+                <div class="config-grid">
+                  <div class="config-block">
+                    <div class="label">Recursos</div>
+                    <div id="resource-summary" class="note"></div>
+                    <div id="resource-editor"></div>
+                    <button id="add-resource" class="btn ghost mini-btn">+ Anadir recurso</button>
+                  </div>
+                  <div class="config-block">
+                    <div class="label">Equipo</div>
+                    <div id="team-editor"></div>
+                    <button id="add-person" class="btn ghost mini-btn">+ Anadir persona</button>
+                  </div>
+                </div>
+                <div class="controls"></div>
+              </section>
+
+              <details id="settings-panel" class="settings-panel">
+                <summary class="panel-title">Ajustes</summary>
+                <div class="settings-body">
+                  <div id="settings-status" class="settings-block">
+                    <div class="block-title">Estado</div>
+                    <div class="settings-status-row">
+                      <div id="settings-state" class="summary-status"></div>
+                      <div id="settings-counts" class="summary-meta"></div>
+                    </div>
+                    <div id="plan-status" class="note"></div>
+                  </div>
+
+                  <div class="settings-block">
+                    <div class="block-title">Acciones rapidas</div>
+                    <div id="settings-actions" class="controls">
+                      <button id="btn-fix-all" class="btn primary">Resolver todo</button>
+                      <button id="btn-assign-resources" class="btn ghost">Asignar recursos</button>
+                      <button id="btn-autoassign-balanced" class="btn ghost">Autoasignar equipo</button>
+                      <button id="btn-fill-durations" class="btn ghost">Autoduraciones</button>
+                    </div>
+                  </div>
+
+                  <details id="settings-expert" class="settings-block">
+                    <summary class="block-title">Modo experto</summary>
+                    <div class="settings-expert-body">
+                      <label class="note">
+                        <input id="expert-toggle" type="checkbox" />
+                        Activar modo experto
+                      </label>
+
+                      <div class="settings-expert-panel expert-only">
+                        <div class="settings-block">
+                          <div class="block-title">Acciones avanzadas</div>
+                          <div class="controls">
+                            <button id="btn-start-service" class="btn success">Iniciar servicio</button>
+                          </div>
+                        </div>
+                        <div class="settings-block">
+                          <div class="block-title">Problemas</div>
+                          <div id="settings-issues-toggle" class="controls">
+                            <button id="btn-toggle-issues" class="btn ghost">Ver problemas</button>
+                          </div>
+                          <div id="settings-issues" class="settings-issues">
+                            <div id="validation-list" class="validation"></div>
+                          </div>
+                        </div>
+
+                        <div class="settings-block">
+                          <div class="block-title">Sesion</div>
+                          <div class="controls">
+                            <button id="continue-session" class="btn ghost">Continuar ultima sesion</button>
+                            <button id="reset-session" class="btn ghost">Reset sesion</button>
+                          </div>
+                        </div>
+
+                        <div class="settings-block">
+                          <div class="block-title">Gestion de recetas</div>
+                          <div class="controls">
+                            <button id="btn-save-recipe" class="btn">Guardar receta</button>
+                            <button id="btn-save-as-new" class="btn ghost">Guardar como nueva</button>
+                          </div>
+                        </div>
+
+                        <div class="settings-block">
+                          <div class="block-title">Optimizacion</div>
+                          <div class="controls">
+                            <button id="btn-rebalance-team" class="btn">Reequilibrar equipo</button>
+                            <button id="btn-recalc-route" class="btn ghost">Recalcular ruta optima</button>
+                          </div>
+                        </div>
+
+                        <div class="settings-block service-only">
+                          <div class="block-title">Control de servicio</div>
+                          <div class="controls">
+                            <button id="btn-approve-plan" class="btn ghost">Aprobar y programar</button>
+                            <button id="btn-phase-prev" class="btn ghost">Retroceder</button>
+                            <button id="btn-phase-next" class="btn ghost">Avanzar</button>
+                            <button id="btn-phase-skip" class="btn ghost">Saltar</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </details>
+            </aside>
+
+            <main class="prep-main">
+              <div id="prep-empty" class="empty-state ticket">
+                <div class="empty-title">Preparacion lista para cargar</div>
+                <div class="empty-sub">
+                  Sube un menu o pega el texto para empezar a generar el plan de cocina.
+                </div>
+                <div class="controls">
+                  <button id="empty-upload-btn" class="btn primary" type="button">Cargar menu</button>
+                  <button id="empty-paste-btn" class="btn ghost" type="button">Pegar texto</button>
+                </div>
               </div>
-              <div class="context-block">
-                <div class="label">Equipo activo</div>
-                <div id="prep-team" class="note"></div>
-              </div>
-            </div>
-          </section>
-          <section class="section" id="prep-ready">
-            <div class="ready-title">Plan listo para el servicio</div>
-            <button id="go-kitchen" class="btn primary">Ir a Cocina</button>
-          </section>
-          </section>
+              <section id="prep-screen" class="prep-screen">
+                <section class="section" id="prep-issues">
+                  <div class="section-title">Que falta para empezar</div>
+                  <div id="prep-issues-grid" class="issue-grid"></div>
+                </section>
+                <section class="section" id="review">
+                  <div class="section-title">Revisar tareas</div>
+                  <div class="table-meta">
+                    <div id="incomplete-count" class="note">Errores bloqueantes: 0 | Avisos: 0</div>
+                    <div id="normalized-count" class="note"></div>
+                    <label class="note">
+                      <input id="toggle-compact" type="checkbox" />
+                      Modo compacto
+                    </label>
+                  </div>
+                  <div class="filters">
+                    <select id="filter-plato"></select>
+                    <select id="filter-fase"></select>
+                    <label class="note">
+                      <input id="filter-errors" type="checkbox" />
+                      Mostrar todas
+                    </label>
+                    <label class="note">
+                      <input id="filter-no-duration" type="checkbox" />
+                      Sin duracion
+                    </label>
+                    <label class="note">
+                      <input id="filter-no-resource" type="checkbox" />
+                      Sin recurso requerido
+                    </label>
+                  </div>
+                  <div id="assignment-list" class="assign-grid"></div>
+                </section>
+                <section class="section" id="prep-context">
+                  <div class="section-title">Contexto</div>
+                  <div class="context-grid">
+                    <div class="context-block">
+                      <div class="label">Recursos disponibles</div>
+                      <div id="prep-resources" class="note"></div>
+                    </div>
+                    <div class="context-block">
+                      <div class="label">Equipo activo</div>
+                      <div id="prep-team" class="note"></div>
+                    </div>
+                  </div>
+                </section>
+                <section class="section" id="prep-ready">
+                  <div class="ready-title">Plan listo para el servicio</div>
+                  <button id="go-kitchen" class="btn primary">Ir a Cocina</button>
+                </section>
+              </section>
+            </main>
+          </div>
         </section>
 
         <section id="view-kitchen" class="kitchen-only">
-          <section class="section" id="service">
-            <div class="section-title">Servicio</div>
-            <div class="status-strip service-panel">
-              <div id="active-phase" class="status-badge phase"></div>
-              <div id="phase-state" class="status-badge"></div>
-              <div id="phase-timer-wrap" class="status-timer">
-                <span id="phase-timer"></span>
-                <span id="phase-timer-note" class="note"></span>
+          <div class="kitchen-layout">
+            <main class="kitchen-main">
+              <section class="section ticket" id="service">
+                <div class="section-title">Servicio</div>
+                <div class="status-strip service-panel">
+                  <div id="active-phase" class="status-badge phase"></div>
+                  <div id="phase-state" class="status-badge stamp"></div>
+                  <div id="phase-timer-wrap" class="status-timer">
+                    <span id="phase-timer"></span>
+                    <span id="phase-timer-note" class="note"></span>
+                  </div>
+                </div>
+              </section>
+
+              <div id="kitchen-empty" class="empty-state ticket">
+                <div class="empty-title">Cocina en espera</div>
+                <div class="empty-sub">Carga un menu y aprueba el plan para iniciar.</div>
+                <div class="controls">
+                  <button class="btn primary" type="button" disabled>Iniciar servicio</button>
+                </div>
               </div>
-            </div>
-          </section>
 
-          <section class="section" id="resources">
-            <div class="section-title">Recursos ocupados</div>
-            <div id="resource-list" class="resource-grid"></div>
-          </section>
+              <section class="section" id="resources">
+                <div class="section-title">Recursos ocupados</div>
+                <div id="resource-list" class="resource-grid"></div>
+              </section>
 
-          <section class="section" id="line">
-            <div class="section-title">Linea de produccion</div>
-            <div id="line-note" class="note"></div>
-            <div id="line-columns" class="line-grid"></div>
-          </section>
+              <section class="section" id="line">
+                <div class="section-title">Linea de produccion</div>
+                <div id="line-note" class="note"></div>
+                <div id="line-columns" class="line-grid"></div>
+              </section>
+            </main>
+          </div>
 
           <footer class="kitchen-footer">
             <button id="pause-phase" class="btn">Pausar</button>
