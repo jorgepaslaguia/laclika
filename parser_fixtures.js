@@ -106,5 +106,23 @@ window.PARSER_FIXTURES = [
     level: 1,
     text: 'MENU DEGUSTACION\n1. ENTRECOT CON REDUCCION\n2. ENSALADA DE TOMATE\n3. FLAN',
     expect: { platesMin: 3, tasksMin: 9, phasesMin: 2 }
+  },
+  {
+    id: 'h1_menu_frio',
+    level: 1,
+    text: 'MENU FRIO\n1. ENSALADA DE TOMATE\n2. CARPACCIO DE TERNERA\n3. GAZPACHO ANDALUZ',
+    expect: { platesMin: 3, tasksMin: 9, phasesMin: 2 }
+  },
+  {
+    id: 'h1_menu_caliente_fuerte',
+    level: 1,
+    text: 'MENU CALIENTE\n1. TARTA DE QUESO\n2. POLLO ASADO\n3. RISOTTO DE SETAS\n4. FLAN CASERO',
+    expect: { platesMin: 4, tasksMin: 12, phasesMin: 2 }
+  },
+  {
+    id: 'h1_menu_mini',
+    level: 1,
+    text: 'MENU MINI\n1. ENSALADA SIMPLE',
+    expect: { platesMin: 1, tasksMin: 4, phasesMin: 2 }
   }
 ];

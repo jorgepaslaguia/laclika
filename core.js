@@ -1902,6 +1902,24 @@ if (typeof window !== 'undefined') {
         return numeric;
       }
 
+      function normalizeEvidence(value) {
+        if (Array.isArray(value)) {
+          return value.map((item) => String(item)).filter(Boolean);
+        }
+        if (!value) {
+          return [];
+        }
+        return [String(value)];
+      }
+
+      function normalizeSource(value, fallback = 'explicit') {
+        const normalized = String(value || '').toLowerCase();
+        if (['explicit', 'inferred', 'default'].includes(normalized)) {
+          return normalized;
+        }
+        return fallback;
+      }
+
       const STATUS_MAP = {
         PENDIENTE: 'TODO',
         EN_CURSO: 'DOING',
@@ -2125,13 +2143,22 @@ if (typeof window !== 'undefined') {
         const name = String(person.nombre || person.name || 'Persona').trim() || 'Persona';
         const idBase = person.id || generatePersonId(existingIds || new Set());
         const id = ensureUniqueId(String(idBase), existingIds || new Set());
+        const source = normalizeSource(person.source || person.origen || person.meta?.source, 'explicit');
+        const confidence = sanitizeNumber(
+          person.confidence ?? person.confianza ?? person.meta?.confidence,
+          source === 'explicit' ? 0.9 : source === 'default' ? 0.5 : 0.65
+        );
+        const evidence = normalizeEvidence(person.evidence || person.evidencia || person.meta?.evidence || []);
         return {
           id,
           nombre: name,
           rol: person.rol || person.role || 'OTRO',
           nivel: clamp(sanitizeInt(person.nivel ?? person.level, 1), 1, 3),
           factor_velocidad: sanitizeNumber(person.factor_velocidad ?? person.speedFactor, 1),
-          restricciones: person.restricciones || person.restrictions || {}
+          restricciones: person.restricciones || person.restrictions || {},
+          source,
+          confidence,
+          evidence
         };
       }
 
@@ -2156,12 +2183,21 @@ if (typeof window !== 'undefined') {
         const typeKey = normalizeResourceName(resource.typeKey || resource.tipo || name);
         const idBase = resource.id || normalizeResourceId(typeKey || name) || makeIdFromName(name, 'RECURSO');
         const id = ensureUniqueId(String(idBase), existingIds || new Set());
+        const source = normalizeSource(resource.source || resource.origen || resource.meta?.source, 'explicit');
+        const confidence = sanitizeNumber(
+          resource.confidence ?? resource.confianza ?? resource.meta?.confidence,
+          source === 'explicit' ? 0.9 : source === 'default' ? 0.5 : 0.65
+        );
+        const evidence = normalizeEvidence(resource.evidence || resource.evidencia || resource.meta?.evidence || []);
         return {
           id,
           nombre: name,
           typeKey: typeKey || normalizeResourceName(name),
           capacidad: sanitizeInt(resource.capacidad ?? resource.capacity, 0),
-          tipo: resource.tipo || resource.type || inferResourceType(typeKey || normalizeResourceName(name))
+          tipo: resource.tipo || resource.type || inferResourceType(typeKey || normalizeResourceName(name)),
+          source,
+          confidence,
+          evidence
         };
       }
 
@@ -4115,14 +4151,20 @@ function normalizeLine(line) {
       }
 
       function menuIRToPlan(menuIR, existingResources, existingTeam) {
+        const hasExplicitResources = Array.isArray(existingResources)
+          ? existingResources.some((item) => normalizeSource(item?.source, '') === 'explicit')
+          : false;
+        const hasExplicitTeam = Array.isArray(existingTeam)
+          ? existingTeam.some((item) => normalizeSource(item?.source, '') === 'explicit')
+          : false;
         const resources = menuIR?.recursos?.length
           ? menuIR.recursos
-          : Array.isArray(existingResources)
+          : hasExplicitResources
             ? existingResources
             : [];
         const team = menuIR?.equipo?.length
           ? menuIR.equipo
-          : Array.isArray(existingTeam)
+          : hasExplicitTeam
             ? existingTeam
             : [];
         const normalizedText = menuIR?.normalizedText || normalizeText(menuIR?.rawText || '');
@@ -4865,6 +4907,225 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           suggestions.push(`Recurso sugerido: ${hint}`);
         }
         return null;
+      }
+
+      function inferDishProcessesForResources(dish) {
+        const dishName = dish?.nombre || '';
+        const explicit = normalizeProcessList(dish?.procesos || []);
+        if (explicit.length) {
+          return explicit;
+        }
+        const profile = getDishProfile(dishName);
+        if (profile) {
+          return resolveProfileProcesses(profile, dishName);
+        }
+        const token = normalizeToken(dishName);
+        if (!token) {
+          return [];
+        }
+        if (/(ensalada|tartar|carpaccio|gazpacho|crudo)/.test(token)) {
+          return normalizeProcessList(['LAVAR', 'CORTAR', 'MEZCLAR', 'EMPLATAR']);
+        }
+        if (/(tarta|bizcocho|brownie)/.test(token)) {
+          return normalizeProcessList(['MEZCLAR', 'HORNEAR', 'ENFRIAR', 'EMPLATAR']);
+        }
+        if (/flan/.test(token)) {
+          return normalizeProcessList(['MEZCLAR', 'BANO_MARIA', 'ENFRIAR', 'EMPLATAR']);
+        }
+        if (/(pasta|ravioli|gnocchi|tortellini)/.test(token)) {
+          return normalizeProcessList(['COCER', 'MEZCLAR', 'EMPLATAR']);
+        }
+        if (/(reduccion|reducir|vino tinto)/.test(token)) {
+          return normalizeProcessList(['SALTEAR', 'REDUCIR', 'EMPLATAR']);
+        }
+        const patternProfile = getDishPatternProfile(dishName);
+        const primary = inferPrimaryProcessForDish(dishName, patternProfile || detectDishPattern(dishName));
+        const extra = Array.isArray(patternProfile?.extraProcesses) ? patternProfile.extraProcesses : [];
+        return normalizeProcessList([primary, 'EMPLATAR'].concat(extra));
+      }
+
+      function inferResourcesFromDraft(draft) {
+        if (!draft || draft.isEmpty) {
+          return [];
+        }
+        const dishes = Array.isArray(draft.platos) ? draft.platos : [];
+        if (!dishes.length) {
+          return [];
+        }
+        const typeCounts = { HORNO: 0, FOGONES: 0, ESTACION: 0, FREGADERO: 0 };
+        const processCounts = {};
+        let totalProcesses = 0;
+        dishes.forEach((dish) => {
+          const processes = inferDishProcessesForResources(dish);
+          processes.forEach((process) => {
+            totalProcesses += 1;
+            processCounts[process] = (processCounts[process] || 0) + 1;
+            const expected = getExpectedResourceForProcess(process, []);
+            if (expected.needs && expected.typeKey) {
+              typeCounts[expected.typeKey] = (typeCounts[expected.typeKey] || 0) + 1;
+            }
+          });
+        });
+        if (!totalProcesses) {
+          return [];
+        }
+        const resources = [];
+        const addResource = (typeKey, capacity, evidence, confidence) => {
+          if (!capacity) {
+            return;
+          }
+          resources.push({
+            id: typeKey,
+            nombre: RESOURCE_LABELS[typeKey] || typeKey,
+            typeKey,
+            capacidad: capacity,
+            tipo: inferResourceType(typeKey),
+            source: 'inferred',
+            confidence,
+            evidence
+          });
+        };
+        const hornoCount = typeCounts.HORNO || 0;
+        const fogonCount = typeCounts.FOGONES || 0;
+        const stationCount = typeCounts.ESTACION || 0;
+        const sinkCount = typeCounts.FREGADERO || 0;
+        const dishCount = dishes.length;
+        const estTaskCount = totalProcesses;
+
+        const hornoCap = hornoCount >= 3 ? 2 : hornoCount >= 1 ? 1 : 0;
+        const fogonCap = fogonCount >= 7 ? 3 : fogonCount >= 4 ? 2 : fogonCount >= 1 ? 1 : 0;
+        const stationCap = dishCount
+          ? dishCount >= 4 || estTaskCount >= 12 || stationCount >= 6
+            ? 2
+            : 1
+          : 0;
+        const sinkCap = sinkCount >= 4 || dishCount >= 4 ? 2 : sinkCount ? 1 : 0;
+
+        if (hornoCap) {
+          addResource(
+            'HORNO',
+            hornoCap,
+            [`procesos hornear/gratinar/bano maria=${hornoCount}`],
+            clamp(0.6 + hornoCount * 0.05, 0.6, 0.85)
+          );
+        }
+        if (fogonCap) {
+          addResource(
+            'FOGONES',
+            fogonCap,
+            [`procesos calientes=${fogonCount}`],
+            clamp(0.6 + fogonCount * 0.04, 0.6, 0.85)
+          );
+        }
+        if (stationCap) {
+          addResource(
+            'ESTACION',
+            stationCap,
+            [`platos=${dishCount}`, `tareas~${estTaskCount}`],
+            clamp(0.6 + stationCount * 0.04, 0.6, 0.85)
+          );
+        }
+        if (sinkCap) {
+          addResource(
+            'FREGADERO',
+            sinkCap,
+            [`lavar/escurrir=${sinkCount}`],
+            clamp(0.6 + sinkCount * 0.04, 0.6, 0.85)
+          );
+        }
+        return resources;
+      }
+
+      function inferTeamFromDraft(draft, tasks, resources) {
+        if (!draft || draft.isEmpty) {
+          return [];
+        }
+        const dishes = Array.isArray(draft.platos) ? draft.platos : [];
+        const dishCount = dishes.length || new Set((tasks || []).map((task) => task.plato)).size;
+        if (!dishCount) {
+          return [];
+        }
+        const taskCount = Array.isArray(tasks) ? tasks.length : 0;
+        const hotProcesses = new Set([
+          'HORNEAR',
+          'GRATINAR',
+          'BANO_MARIA',
+          'COCER',
+          'SALTEAR',
+          'SOFREIR',
+          'FREIR',
+          'REDUCIR'
+        ]);
+        const hotDishes = new Set();
+        const hasEmplatar = (tasks || []).some((task) => task.proceso === 'EMPLATAR');
+        (tasks || []).forEach((task) => {
+          if (hotProcesses.has(task.proceso)) {
+            hotDishes.add(task.plato);
+          }
+        });
+        const hotDishCount = hotDishes.size;
+        const hasHorno = (resources || []).some(
+          (resource) => normalizeResourceName(resource.typeKey || resource.nombre || resource.id) === 'HORNO'
+        );
+        const hasFogones = (resources || []).some(
+          (resource) => normalizeResourceName(resource.typeKey || resource.nombre || resource.id) === 'FOGONES'
+        );
+        let target = 2;
+        const evidence = [];
+        if (dishCount >= 3) {
+          target = Math.max(target, 3);
+          evidence.push(`platos=${dishCount}`);
+        }
+        if (dishCount >= 5) {
+          target = 4;
+          evidence.push(`platos>=5`);
+        }
+        if (taskCount >= 12) {
+          target = Math.max(target, 3);
+          evidence.push(`tareas=${taskCount}`);
+        }
+        if (taskCount >= 18) {
+          target = 4;
+          evidence.push(`tareas>=18`);
+        }
+        if (hotDishCount >= 3) {
+          target = Math.max(target, 3);
+          evidence.push(`platos_calientes=${hotDishCount}`);
+        }
+        if (hasHorno && hasFogones && hasEmplatar && hotDishCount >= 2) {
+          target = Math.max(target, 3);
+          evidence.push('horno+fogones+emplatado');
+        }
+        target = clamp(target, 2, 4);
+        const confidence = clamp(0.6 + evidence.length * 0.05, 0.6, 0.8);
+        const ids = new Set();
+        const team = [];
+        const addPerson = (name, role, level) => {
+          const id = ensureUniqueId(makeIdFromName(name, 'PERSONA'), ids);
+          ids.add(id);
+          team.push({
+            id,
+            nombre: name,
+            rol: role,
+            nivel: level,
+            factor_velocidad: 1,
+            restricciones: {},
+            source: 'inferred',
+            confidence,
+            evidence: evidence.slice()
+          });
+        };
+        addPerson('Chef', 'CHEF', 3);
+        if (target >= 2) {
+          addPerson('Pinche 1', 'PINXE', 2);
+        }
+        if (target >= 3) {
+          addPerson('Pinche 2', 'PINXE', 1);
+        }
+        if (target >= 4) {
+          addPerson('Pinche 3', 'PINXE', 1);
+        }
+        return team;
       }
 
       function buildTasksFromPattern(pattern, dish, index, resources, resourceWarnings) {
@@ -5719,12 +5980,8 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         const guidedQuestions = [];
         const uncertainties = [];
         const styleSet = new Set();
-        const resources = draft.recursos && draft.recursos.length
-          ? deepClone(draft.recursos)
-          : deepClone(DEFAULT_PLAN.recursos || DEFAULT_PLAN.resources?.items || DEFAULT_PLAN.resources || []);
-        const equipo = draft.equipo && draft.equipo.length
-          ? deepClone(draft.equipo)
-          : deepClone(DEFAULT_PLAN.equipo || DEFAULT_PLAN.team || []);
+        const explicitResources = draft.recursos && draft.recursos.length ? deepClone(draft.recursos) : [];
+        const resources = explicitResources.length ? explicitResources : inferResourcesFromDraft(draft);
         const resourceWarnings = [];
 
         if (state && state.debugEnabled) {
@@ -5775,6 +6032,28 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
 
 
         const uniqueUncertainties = Array.from(new Set(uncertainties)).slice(0, 5);
+        const explicitTeam = draft.equipo && draft.equipo.length ? deepClone(draft.equipo) : [];
+        const equipo = explicitTeam.length ? explicitTeam : inferTeamFromDraft(draft, tasks, resources);
+        if (state && state.debugEnabled) {
+          const teamSummary = equipo.length
+            ? equipo.map((person) => `${person.nombre} (${normalizeSource(person.source, 'explicit')})`).join(' | ')
+            : 'sin equipo';
+          const resourceSummary = resources.length
+            ? resources
+              .map((resource) => {
+                const label = resource.nombre || resource.id;
+                const cap = sanitizeInt(resource.capacidad ?? resource.capacity, 0);
+                const source = normalizeSource(resource.source, 'explicit');
+                const evidence = normalizeEvidence(resource.evidence);
+                const evidenceText = evidence.length ? `: ${evidence.join('; ')}` : '';
+                return `${label} ${cap} (${source}${evidenceText})`;
+              })
+              .join(' | ')
+            : 'sin recursos';
+          console.debug(`[inferencia] Equipo: ${teamSummary}`);
+          console.debug(`[inferencia] Recursos: ${resourceSummary}`);
+        }
+
         const planBuilt = {
           meta: {
             titulo: 'Menu importado',
