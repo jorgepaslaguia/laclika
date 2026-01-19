@@ -1618,7 +1618,7 @@ if (typeof window !== 'undefined') {
         }
         render();
         if (opts.scrollToUpload) {
-          const upload = 'upload');
+          const upload = 'upload';
           if (upload) {
             upload.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
