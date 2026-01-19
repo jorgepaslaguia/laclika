@@ -1434,6 +1434,26 @@ if (typeof window !== 'undefined') {
           autoAssignOnReview: true
         }
       };
+      const EMPTY_PLAN = {
+        id: 'plan_vacio',
+        recipeId: null,
+        name: 'Plan vacio',
+        notes: null,
+        pax: null,
+        fases: [...PHASES],
+        faseActiva: PHASES[0],
+        phaseActive: PHASES[0],
+        phaseStatus: 'IDLE',
+        tareas: [],
+        equipo: [],
+        recursos: [],
+        preguntas_rapidas: [],
+        preguntas_guiadas: [],
+        advertencias_de_recursos: [],
+        incertidumbres_detectadas: [],
+        resumen_estilos_aplicados: [],
+        isEmpty: true
+      };
 
       const RECIPE_STORAGE_KEY = 'JCD_RECIPES_V1';
       const LEGACY_RECIPE_STORAGE_KEY = 'jcd_recipes_v1';
@@ -2150,10 +2170,11 @@ if (typeof window !== 'undefined') {
       }
 
       function normalizePlan(inputPlan) {
-        const raw = inputPlan ? deepClone(inputPlan) : deepClone(DEFAULT_PLAN);
-        const rawResources = raw.recursos || raw.resources?.items || raw.resources || [];
-        const rawTeam = raw.equipo || raw.team || [];
-        const rawTasks = raw.tareas || raw.tasks || [];
+        const raw = deepClone(inputPlan ?? EMPTY_PLAN);
+        const allowEmpty = Boolean(raw?.isEmpty);
+        const rawResources = allowEmpty ? [] : raw.recursos || raw.resources?.items || raw.resources || [];
+        const rawTeam = allowEmpty ? [] : raw.equipo || raw.team || [];
+        const rawTasks = allowEmpty ? [] : raw.tareas || raw.tasks || [];
 
         const resourceIds = new Set();
         const resources = rawResources
@@ -2178,9 +2199,10 @@ if (typeof window !== 'undefined') {
           : [...PHASES];
         const faseActiva = raw.faseActiva || raw.phaseActive || fases[0];
 
-        const defaultTeam = DEFAULT_PLAN.equipo || DEFAULT_PLAN.team || [];
-        const defaultResources =
-          DEFAULT_PLAN.recursos || DEFAULT_PLAN.resources?.items || DEFAULT_PLAN.resources || [];
+        const defaultTeam = allowEmpty ? [] : DEFAULT_PLAN.equipo || DEFAULT_PLAN.team || [];
+        const defaultResources = allowEmpty
+          ? []
+          : DEFAULT_PLAN.recursos || DEFAULT_PLAN.resources?.items || DEFAULT_PLAN.resources || [];
         const planNormalized = {
           ...raw,
           id: raw.id || makeIdFromName(raw.name || raw.meta?.titulo || 'PLAN', 'PLAN'),
@@ -2191,14 +2213,15 @@ if (typeof window !== 'undefined') {
           faseActiva,
           phaseActive: faseActiva,
           phaseStatus: raw.phaseStatus || raw.phase_status || 'IDLE',
-          tareas: tasks,
-          equipo: team.length ? team : deepClone(defaultTeam),
-          recursos: resources.length ? resources : deepClone(defaultResources),
-          preguntas_rapidas: raw.preguntas_rapidas || [],
-          preguntas_guiadas: raw.preguntas_guiadas || [],
-          advertencias_de_recursos: raw.advertencias_de_recursos || [],
-          incertidumbres_detectadas: raw.incertidumbres_detectadas || [],
-          resumen_estilos_aplicados: raw.resumen_estilos_aplicados || [],
+          tareas: allowEmpty ? [] : tasks,
+          equipo: allowEmpty ? [] : team.length ? team : deepClone(defaultTeam),
+          recursos: allowEmpty ? [] : resources.length ? resources : deepClone(defaultResources),
+          preguntas_rapidas: allowEmpty ? [] : raw.preguntas_rapidas || [],
+          preguntas_guiadas: allowEmpty ? [] : raw.preguntas_guiadas || [],
+          advertencias_de_recursos: allowEmpty ? [] : raw.advertencias_de_recursos || [],
+          incertidumbres_detectadas: allowEmpty ? [] : raw.incertidumbres_detectadas || [],
+          resumen_estilos_aplicados: allowEmpty ? [] : raw.resumen_estilos_aplicados || [],
+          isEmpty: allowEmpty,
           settings: normalizePlanSettings(raw.settings || {})
         };
 
@@ -2308,7 +2331,8 @@ if (typeof window !== 'undefined') {
       }
 
       function setPlan(nextPlan, draft = null, summary = '', questions = []) {
-        plan = normalizePlan(nextPlan);
+        const planInput = nextPlan ?? EMPTY_PLAN;
+        plan = normalizePlan(planInput);
         if (draft !== undefined) {
           menuDraft = draft;
         }
@@ -2403,6 +2427,9 @@ if (typeof window !== 'undefined') {
 
       function saveLastPlan() {
         try {
+          if (plan?.isEmpty) {
+            return;
+          }
           const cleanPlan = sanitizePlanForStorage(plan);
           if (!cleanPlan) {
             return;
@@ -2576,7 +2603,7 @@ if (typeof window !== 'undefined') {
               setActiveRecipe(fallback.id, { mode: 'prep', openSettings: false });
             }
           } else {
-            setPlan(DEFAULT_PLAN, null, 'Plan base cargado', []);
+            setPlan(EMPTY_PLAN, null, 'Plan vacio', []);
           }
         }
         saveRecipesToStorage();
@@ -5914,6 +5941,9 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         }
 
       function validatePlan(planToCheck) {
+        if (planToCheck?.isEmpty) {
+          return { errors: [], warnings: [] };
+        }
         const errors = [];
         const warnings = [];
         const resources = planToCheck.resources?.items || planToCheck.recursos || [];
@@ -6179,6 +6209,18 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
       }
 
         function validateAndStore() {
+          if (plan?.isEmpty) {
+            state.diagnostics = emptyDiagnostics();
+            state.issues = [];
+            validationState.errors = [];
+            validationState.warnings = [];
+            state.invariants = { errors: [], warnings: [] };
+            if (state.approved) {
+              state.approved = false;
+              state.planReady = false;
+            }
+            return;
+          }
           const removed = pruneInvalidTeam();
           pruneQuestions();
           applyAutoFixes(plan);
@@ -6351,12 +6393,8 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
                 parseErrorMessage: 'No se detectaron platos/tareas. Revisa el formato del menu o pega el texto manualmente.',
                 parseStatus: 'BLOCKER'
               },
-              equipo: draft?.equipo && draft.equipo.length
-                ? deepClone(draft.equipo)
-                : deepClone(DEFAULT_PLAN.equipo || DEFAULT_PLAN.team || []),
-              recursos: draft?.recursos && draft.recursos.length
-                ? deepClone(draft.recursos)
-                : deepClone(DEFAULT_PLAN.recursos || DEFAULT_PLAN.resources?.items || DEFAULT_PLAN.resources || []),
+              equipo: draft?.equipo && draft.equipo.length ? deepClone(draft.equipo) : [],
+              recursos: draft?.recursos && draft.recursos.length ? deepClone(draft.recursos) : [],
               fases: [...PHASES],
               tareas: [],
               preguntas_rapidas: [],
@@ -7500,8 +7538,9 @@ async function handlePdfFile(file) {
         const filtersWrap = filterPlatoEl ? filterPlatoEl.closest('.filters') : null;
         const hasTasks = Boolean(plan && Array.isArray(plan.tareas) && plan.tareas.length);
         const inPrepView = state && (state.uiMode === 'prep' || state.view === 'prep');
+        const isEmptyPlan = Boolean(plan && plan.isEmpty);
 
-        if (!hasTasks || !inPrepView || !filterPlatoEl || !filterFaseEl) {
+        if (!hasTasks || isEmptyPlan || !inPrepView || !filterPlatoEl || !filterFaseEl) {
           if (filtersWrap) {
             filtersWrap.style.display = 'none';
           }
@@ -8145,6 +8184,13 @@ async function handlePdfFile(file) {
         if (!prepIssuesGridEl) {
           return;
         }
+        if (plan?.isEmpty) {
+          prepIssuesGridEl.innerHTML = '';
+          if (prepIssuesSectionEl) {
+            prepIssuesSectionEl.classList.add('hidden');
+          }
+          return;
+        }
         const diagnostics = state.diagnostics || emptyDiagnostics();
         const issues = state.issues || [];
         const errorCount = issues.filter((issue) => issue.severity === 'error').length;
@@ -8212,6 +8258,18 @@ async function handlePdfFile(file) {
         if (!prepResourcesEl || !prepTeamEl) {
           return;
         }
+        const contextSection = prepResourcesEl.closest('#prep-context');
+        if (plan?.isEmpty) {
+          if (contextSection) {
+            contextSection.classList.add('hidden');
+          }
+          prepResourcesEl.textContent = '';
+          prepTeamEl.textContent = '';
+          return;
+        }
+        if (contextSection) {
+          contextSection.classList.remove('hidden');
+        }
         const effective = getEffectiveResources();
         if (!effective.list.length) {
           prepResourcesEl.textContent = 'Sin recursos definidos.';
@@ -8233,11 +8291,37 @@ async function handlePdfFile(file) {
         if (!prepReadyEl) {
           return;
         }
+        if (plan?.isEmpty || !plan?.tareas?.length) {
+          prepReadyEl.classList.add('hidden');
+          return;
+        }
         const errorCount = (state.issues || []).filter((issue) => issue.severity === 'error').length;
         prepReadyEl.classList.toggle('hidden', errorCount > 0);
       }
 
       function renderAlerts() {
+        if (plan?.isEmpty) {
+          if (alertsCountEl) {
+            alertsCountEl.textContent = '0';
+          }
+          if (alertsLinesEl) {
+            alertsLinesEl.innerHTML = '<div>Sin alertas.</div>';
+          }
+          if (alertsBoxEl) {
+            alertsBoxEl.classList.add('hidden');
+          }
+          if (alertsPanelEl) {
+            alertsPanelEl.classList.remove('show');
+          }
+          if (alertsMissingEl) {
+            alertsMissingEl.textContent = 'Sin recursos faltantes.';
+          }
+          if (alertsAddResourcesBtn) {
+            alertsAddResourcesBtn.disabled = true;
+          }
+          state.alertsOpen = false;
+          return;
+        }
         const diagnostics = state.diagnostics || emptyDiagnostics();
         const issues = getAlertIssues(diagnostics);
           const hasAlerts = issues.length > 0;
@@ -8654,6 +8738,24 @@ async function handlePdfFile(file) {
       }
 
       function renderAssignments() {
+        const reviewSection = document.getElementById('review');
+        const isEmptyPlan = Boolean(plan && plan.isEmpty);
+        const hasTasks = Boolean(plan && Array.isArray(plan.tareas) && plan.tareas.length);
+        if (reviewSection) {
+          reviewSection.classList.toggle('hidden', isEmptyPlan || !hasTasks);
+        }
+        if (isEmptyPlan || !hasTasks) {
+          if (assignmentListEl) {
+            assignmentListEl.innerHTML = '';
+          }
+          if (incompleteCountEl) {
+            incompleteCountEl.textContent = 'Errores bloqueantes: 0 | Avisos: 0';
+          }
+          if (normalizedCountEl) {
+            normalizedCountEl.textContent = '';
+          }
+          return;
+        }
         const incompleteMap = new Map();
         let incompleteCount = 0;
         const errorTaskIds = new Set(
@@ -10101,6 +10203,8 @@ function updateControls() {
 
       if (typeof window !== 'undefined') {
         window.__CORE_EXPORTED__ = true;
+        window.DEFAULT_PLAN = DEFAULT_PLAN;
+        window.EMPTY_PLAN = EMPTY_PLAN;
         window.loadUserSettings = loadUserSettings;
         window.saveUserSettings = saveUserSettings;
         window.selfCheck = selfCheck;

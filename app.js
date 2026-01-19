@@ -65,8 +65,8 @@
     'updatePdfStatus'
   ];
   const emptyPlan =
-    (typeof window !== 'undefined' && (window.EMPTY_PLAN || window.DEFAULT_PLAN)) ||
-    (typeof DEFAULT_PLAN !== 'undefined' ? DEFAULT_PLAN : null) ||
+    (typeof window !== 'undefined' && window.EMPTY_PLAN) ||
+    (typeof EMPTY_PLAN !== 'undefined' ? EMPTY_PLAN : null) ||
     { tareas: [], recursos: [], equipo: [], isEmpty: true };
 
   const getMissingCore = () =>
@@ -302,6 +302,7 @@
     const pdfInputEl = document.getElementById('pdfInput');
     const parseTextBtn = document.getElementById('btnInterpret');
     const newRecipeBtn = document.getElementById('new-recipe');
+    const newRecipeDefaultsEl = document.getElementById('new-recipe-defaults');
     const importRecipeBtn = document.getElementById('import-pdf');
     const backLibraryBtn = document.getElementById('back-library');
     const saveRecipeBtn = document.getElementById('btn-save-recipe');
@@ -460,7 +461,11 @@
     on(parseTextBtn, 'click', handleManualText);
     if (newRecipeBtn) {
       newRecipeBtn.addEventListener('click', () => {
-        const recipe = addRecipe(createRecipeFromPlan(DEFAULT_PLAN, { name: 'Nueva receta' }));
+        const useDefaults = Boolean(newRecipeDefaultsEl && newRecipeDefaultsEl.checked);
+        const basePlan = useDefaults
+          ? (typeof DEFAULT_PLAN !== 'undefined' ? { ...DEFAULT_PLAN, isEmpty: false } : { ...emptyPlan, isEmpty: false })
+          : emptyPlan;
+        const recipe = addRecipe(createRecipeFromPlan(basePlan, { name: 'Nueva receta' }));
         setActiveRecipe(recipe.id, { mode: 'prep', openSettings: true });
         navigateTo('prep');
       });
