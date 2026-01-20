@@ -250,6 +250,12 @@
         console.warn('ID duplicado detectado:', id, list);
       }
     });
+    if (document.querySelectorAll('#pdfDropZone').length > 1) {
+      console.warn('Duplicado detectado: #pdfDropZone debe existir una sola vez.');
+    }
+    if (document.querySelectorAll('#pdfInput').length > 1) {
+      console.warn('Duplicado detectado: #pdfInput debe existir una sola vez.');
+    }
   };
 
   const bindEvents = () => {
@@ -351,6 +357,7 @@
     const compactToggleEl = document.getElementById('toggle-compact');
     const questionsListEl = document.getElementById('questions-list');
     const assignmentListEl = document.getElementById('assignment-list');
+    const retryInterpretBtn = document.getElementById('retry-interpret');
     const resourceEditorEl = document.getElementById('resource-editor');
     const teamEditorEl = document.getElementById('team-editor');
     const addResourceBtn = document.getElementById('add-resource');
@@ -446,6 +453,30 @@
       }
     };
 
+    const runRetryInterpret = () => {
+      const lastText = typeof appState === 'object' ? String(appState.menuRawText || '').trim() : '';
+      if (lastText) {
+        processMenuText(lastText);
+        return;
+      }
+      if (typeof handleManualText === 'function') {
+        handleManualText();
+        return;
+      }
+      if (typeof navigateTo === 'function') {
+        navigateTo('prep');
+      } else if (typeof setUIMode === 'function') {
+        setUIMode('prep', { scrollToUpload: true, focusManual: true });
+      }
+      if (manualToggleBtn) {
+        manualToggleBtn.click();
+        return;
+      }
+      if (manualTextEl) {
+        manualTextEl.focus();
+      }
+    };
+
     on(dropZoneEl, 'click', () => pdfInputEl && pdfInputEl.click());
     on(dropZoneEl, 'dragover', (event) => {
       event.preventDefault();
@@ -491,6 +522,15 @@
           if (manualTextEl) {
             manualTextEl.focus();
           }
+        } catch (error) {
+          reportActionError(error);
+        }
+      });
+    }
+    if (retryInterpretBtn && !retryInterpretBtn.dataset.action) {
+      retryInterpretBtn.addEventListener('click', () => {
+        try {
+          runRetryInterpret();
         } catch (error) {
           reportActionError(error);
         }
@@ -573,6 +613,35 @@
       expertToggleEl.addEventListener('change', () => {
         setState({ expertMode: expertToggleEl.checked });
         render();
+      });
+    }
+
+    if (!window.__ACTION_DELEGATION_BOUND__) {
+      window.__ACTION_DELEGATION_BOUND__ = true;
+      document.addEventListener('click', (event) => {
+        const target = event.target.closest('[data-action]');
+        if (!target || target.disabled) {
+          return;
+        }
+        const action = target.dataset.action;
+        if (!action) {
+          return;
+        }
+        try {
+          if (action === 'distribute-tasks') {
+            handleValidationAction('validation-assign');
+            return;
+          }
+          if (action === 'assign-missing-resources') {
+            handleValidationAction('validation-add-resources');
+            return;
+          }
+          if (action === 'retry-interpret') {
+            runRetryInterpret();
+          }
+        } catch (error) {
+          reportActionError(error);
+        }
       });
     }
 

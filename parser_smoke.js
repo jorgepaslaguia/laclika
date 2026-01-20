@@ -22,6 +22,7 @@
           plateCount = draft?.platos?.length || plateCount;
         }
         const taskCount = planBuilt?.tareas?.length || 0;
+        const teamCount = planBuilt?.equipo?.length || planBuilt?.team?.length || 0;
         const phases = new Set((planBuilt?.tareas || []).map((task) => task.fase));
         const tasksByDish = {};
         const processesByDish = {};
@@ -81,14 +82,20 @@
         const warningAfterMax = Number.isFinite(expect.warningsAfterMax) ? expect.warningsAfterMax : 1;
         const warningsOk = warnings === null ? true : warnings <= warningMax;
         const warningsAfterOk = warningsAfter === null ? true : warningsAfter <= warningAfterMax;
-        ok = platesOk && tasksOk && phasesOk && warningsOk && warningsAfterOk;
+        const teamMin = Number.isFinite(expect.teamMin) ? expect.teamMin : null;
+        const teamMax = Number.isFinite(expect.teamMax) ? expect.teamMax : null;
+        const teamOk =
+          teamMin === null && teamMax === null
+            ? true
+            : (teamMin === null || teamCount >= teamMin) && (teamMax === null || teamCount <= teamMax);
+        ok = platesOk && tasksOk && phasesOk && warningsOk && warningsAfterOk && teamOk;
         const warnLabel =
           warnings === null
             ? 'warnings n/a'
             : `warnings ${warnings}→${warningsAfter ?? warnings}`;
         const infoLabel = infos === null ? 'infos n/a' : `infos ${infos}→${infosAfter ?? infos}`;
         detail =
-          `platos ${plateCount} tareas ${taskCount} fases ${phases.size} ` +
+          `platos ${plateCount} tareas ${taskCount} equipo ${teamCount} fases ${phases.size} ` +
           `tareas/plato ${tasksPerDishMin}-${tasksPerDishMax} ` +
           `procesos/plato ${procPerDishMin}-${procPerDishMax} ` +
           `${warnLabel} ${infoLabel}`;

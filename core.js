@@ -227,6 +227,25 @@ if (typeof window !== 'undefined') {
         'operativa',
         'cocina'
       ]);
+      const ENUMERATION_STRONG_RE = /^\s*(\d+)[\.\)]\s+(.+)$/;
+      const DISH_HEADER_TOKENS = new Set([
+        'menu',
+        'entrantes',
+        'entrante',
+        'principales',
+        'principal',
+        'postres',
+        'postre',
+        'bebidas',
+        'bebida',
+        'recursos',
+        'recurso',
+        'equipo',
+        'alergias',
+        'alergia',
+        'observaciones',
+        'observacion'
+      ]);
       const DISH_SCORE_THRESHOLD = 0.55;
       const DISH_SIMILARITY_THRESHOLD = 0.88;
       const DISH_MAX_PLATOS_MIN = 6;
@@ -2298,10 +2317,6 @@ if (typeof window !== 'undefined') {
           : [...PHASES];
         const faseActiva = raw.faseActiva || raw.phaseActive || fases[0];
 
-        const defaultTeam = allowEmpty ? [] : DEFAULT_PLAN.equipo || DEFAULT_PLAN.team || [];
-        const defaultResources = allowEmpty
-          ? []
-          : DEFAULT_PLAN.recursos || DEFAULT_PLAN.resources?.items || DEFAULT_PLAN.resources || [];
         const planNormalized = {
           ...raw,
           id: raw.id || makeIdFromName(raw.name || raw.meta?.titulo || 'PLAN', 'PLAN'),
@@ -2313,8 +2328,8 @@ if (typeof window !== 'undefined') {
           phaseActive: faseActiva,
           phaseStatus: raw.phaseStatus || raw.phase_status || 'IDLE',
           tareas: allowEmpty ? [] : tasks,
-          equipo: allowEmpty ? [] : team.length ? team : deepClone(defaultTeam),
-          recursos: allowEmpty ? [] : resources.length ? resources : deepClone(defaultResources),
+          equipo: allowEmpty ? [] : team,
+          recursos: allowEmpty ? [] : resources,
           preguntas_rapidas: allowEmpty ? [] : raw.preguntas_rapidas || [],
           preguntas_guiadas: allowEmpty ? [] : raw.preguntas_guiadas || [],
           advertencias_de_recursos: allowEmpty ? [] : raw.advertencias_de_recursos || [],
@@ -2641,10 +2656,8 @@ if (typeof window !== 'undefined') {
           fases: recipe.phases || [...PHASES],
           faseActiva: (recipe.phases && recipe.phases[0]) || PHASES[0],
           tareas: deepClone(recipe.tareas || []),
-          equipo: deepClone(plan?.equipo || DEFAULT_PLAN.equipo || DEFAULT_PLAN.team || []),
-          recursos: deepClone(
-            plan?.recursos || DEFAULT_PLAN.recursos || DEFAULT_PLAN.resources?.items || DEFAULT_PLAN.resources || []
-          )
+          equipo: [],
+          recursos: []
         };
         return normalizePlan(planDraft);
       }
@@ -2852,12 +2865,16 @@ if (typeof window !== 'undefined') {
         ).filter(Boolean);
         merged.pax = merged.pax || incoming.pax || null;
         merged.confianza = Math.max(merged.confianza || 0, incoming.confianza || 0);
+        merged.forcedEnumeration = merged.forcedEnumeration || incoming.forcedEnumeration || false;
         merged.dishKey = normalizeDishKey(merged.nombre);
         return merged;
       }
 
       function mergeDishCandidate(dishes, candidate, threshold = DISH_SIMILARITY_THRESHOLD) {
         if (!candidate || !Array.isArray(dishes)) {
+          return null;
+        }
+        if (candidate.forcedEnumeration) {
           return null;
         }
         const candidateKey = normalizeDishKey(candidate.nombre);
@@ -2867,6 +2884,9 @@ if (typeof window !== 'undefined') {
         }
         for (let i = 0; i < dishes.length; i += 1) {
           const existing = dishes[i];
+          if (existing && existing.forcedEnumeration) {
+            continue;
+          }
           const existingKey = existing.dishKey || normalizeDishKey(existing.nombre);
           existing.dishKey = existingKey;
           const similarity = computeDishSimilarity(candidateKey, existingKey);
@@ -3067,7 +3087,7 @@ function normalizeLine(line) {
           return false;
         }
         // Allow list-like lines that may include dishes even if they contain metadata words.
-        if (/[,;:\-\u2022\u00b7]/.test(line) || /\b\d{1,2}[\.\-)]\s+/.test(line)) {
+        if (/[,;:\-\u2022\u00b7]/.test(line) || ENUMERATION_STRONG_RE.test(line) || /\b\d{1,2}[\.\-)]\s+/.test(line)) {
           return false;
         }
         return true;
@@ -3080,6 +3100,33 @@ function normalizeLine(line) {
         });
         cleaned = cleaned.replace(/\s+/g, ' ').trim();
         return cleaned;
+      }
+
+      function isObviousDishHeader(text) {
+        const normalized = normalizeToken(text || '');
+        if (!normalized) {
+          return false;
+        }
+        const tokens = normalized.split(' ').filter(Boolean);
+        if (tokens.length === 1 && DISH_HEADER_TOKENS.has(tokens[0])) {
+          return true;
+        }
+        return DISH_HEADER_TOKENS.has(normalized);
+      }
+
+      function inferForcedProcessesFromDishName(name) {
+        const normalized = normalizeToken(name || '');
+        if (!normalized) {
+          return [];
+        }
+        const forced = [];
+        if (/al horno|hornead/.test(normalized)) {
+          forced.push('HORNEAR');
+        }
+        if (/asado|asar|rostiz/.test(normalized)) {
+          forced.push(normalizeProcessKey('asar'));
+        }
+        return normalizeProcessList(forced);
       }
 
       function isIngredientDishName(name) {
@@ -3709,76 +3756,174 @@ function normalizeLine(line) {
       function guessRoleLevel(value) {
         const normalized = normalizeToken(value);
         if (normalized.includes('chef') || normalized.includes('jefe')) {
-          return { rol: 'Chef', nivel: 3 };
+          return { rol: 'CHEF', nivel: 3, label: 'Chef' };
         }
         if (normalized.includes('pinxe') || normalized.includes('pinche')) {
-          return { rol: 'Pinxe', nivel: 2 };
+          return { rol: 'PINCHE', nivel: 2, label: 'Pinche' };
         }
         if (normalized.includes('ayudante') || normalized.includes('auxiliar')) {
-          return { rol: 'Ayudante', nivel: 1 };
+          return { rol: 'AYUDANTE', nivel: 1, label: 'Ayudante' };
         }
         if (normalized.includes('cocinero')) {
-          return { rol: 'Cocinero', nivel: 2 };
+          return { rol: 'COCINERO', nivel: 2, label: 'Cocinero' };
         }
-        return { rol: 'Equipo', nivel: 1 };
+        return { rol: 'EQUIPO', nivel: 1, label: 'Equipo' };
       }
 
       function parseTeamFromLines(lines) {
-          const team = [];
-          const seenNames = new Set();
-          const usedIds = new Set();
-          lines.forEach((rawLine) => {
-            const line = normalizeLine(rawLine);
-            if (!line) {
-              return;
-            }
-            if (lineLooksLikeResource(line)) {
-              return;
-            }
-            if (lineLooksLikeTeam(line)) {
-              let listPart = line;
-              if (line.includes(':')) {
-                listPart = line.split(':').slice(1).join(':').trim();
-              }
-              if (!listPart) {
+        const ROLE_PATTERNS = [
+          { match: /chef|jefe/, rol: 'CHEF', label: 'Chef', nivel: 3 },
+          { match: /cocinero/, rol: 'COCINERO', label: 'Cocinero', nivel: 2 },
+          { match: /pinche|pinxe/, rol: 'PINCHE', label: 'Pinche', nivel: 2 },
+          { match: /ayudante|auxiliar/, rol: 'AYUDANTE', label: 'Ayudante', nivel: 1 }
+        ];
+        const team = [];
+        const seenNames = new Set();
+        const usedIds = new Set();
+        const roleCounters = new Map();
+
+        const makeUniqueName = (baseName) => {
+          let name = baseName;
+          let idx = 2;
+          while (seenNames.has(normalizeToken(name))) {
+            name = `${baseName} ${idx}`;
+            idx += 1;
+          }
+          seenNames.add(normalizeToken(name));
+          return name;
+        };
+
+        const nextRoleIndex = (role) => {
+          const next = (roleCounters.get(role) || 0) + 1;
+          roleCounters.set(role, next);
+          return next;
+        };
+
+        const matchRole = (normalized) =>
+          ROLE_PATTERNS.find((role) => role.match.test(normalized)) || null;
+
+        const extractCount = (normalized) => {
+          const cleaned = normalized.replace(/nivel\s*\d+/g, ' ').trim();
+          const countFirst = cleaned.match(
+            /(\d+)\s*(?:x\s*)?(chefs?|jefes?|cocineros?|pinches?|pinxes?|ayudantes?|auxiliares?)\b/
+          );
+          if (countFirst) {
+            return sanitizeInt(countFirst[1], 1);
+          }
+          const countAfter = cleaned.match(
+            /\b(chefs?|jefes?|cocineros?|pinches?|pinxes?|ayudantes?|auxiliares?)\b\s*[x*]\s*(\d+)/
+          );
+          if (countAfter) {
+            return sanitizeInt(countAfter[2], 1);
+          }
+          return 1;
+        };
+
+        const addTeamMember = (name, roleInfo, rawItem) => {
+          const id = generatePersonId(usedIds);
+          usedIds.add(id);
+          const levelMatch = rawItem.match(/nivel\s*(\d)/i);
+          const levelValue = levelMatch ? clamp(parseInt(levelMatch[1], 10), 1, 3) : roleInfo.nivel;
+          team.push({
+            id,
+            nombre: name,
+            rol: roleInfo.rol,
+            nivel: levelValue,
+            factor_velocidad: 1,
+            restricciones: {}
+          });
+        };
+
+        lines.forEach((rawLine) => {
+          const line = normalizeLine(rawLine);
+          if (!line) {
+            return;
+          }
+          if (lineLooksLikeResource(line)) {
+            return;
+          }
+          if (!lineLooksLikeTeam(line)) {
+            return;
+          }
+          let listPart = line;
+          if (line.includes(':')) {
+            listPart = line.split(':').slice(1).join(':').trim();
+          }
+          if (!listPart) {
+            return;
+          }
+          const normalizedList = listPart
+            .replace(/\s*\+\s*/g, ',')
+            .replace(/\s*&\s*/g, ',')
+            .replace(/\s+(y|e)\s+/gi, ',');
+          normalizedList
+            .split(/[,/;]+/)
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0)
+            .forEach((item) => {
+              const rawItem = item.replace(/\s+/g, ' ').trim();
+              if (!rawItem) {
                 return;
               }
-              listPart
-                .split(/[,/;]+/)
-                .map((item) => item.trim())
-                .filter((item) => item.length > 0)
-                .forEach((item) => {
-                  const rawItem = item.replace(/\s+/g, ' ').trim();
-                  if (!rawItem) {
-                    return;
+              const normalizedItem = normalizeToken(rawItem);
+              const roleInfo = matchRole(normalizedItem);
+              if (roleInfo) {
+                const count = Math.max(1, extractCount(normalizedItem));
+                if (count > 1) {
+                  for (let i = 0; i < count; i += 1) {
+                    const index = nextRoleIndex(roleInfo.rol);
+                    const name = makeUniqueName(`${roleInfo.label} ${index}`);
+                    addTeamMember(name, roleInfo, rawItem);
                   }
-                  const nameCandidate = rawItem.split(/[\-|]/)[0].trim() || rawItem;
-                  if (isInvalidPersonName(nameCandidate)) {
-                    return;
-                  }
-                  const normalizedName = normalizeToken(nameCandidate);
-                  if (seenNames.has(normalizedName)) {
-                    return;
-                  }
-                  const id = generatePersonId(usedIds);
-                  usedIds.add(id);
-                  const roleInfo = guessRoleLevel(rawItem);
-                  const levelMatch = rawItem.match(/nivel\s*(\d)/i);
-                  const levelValue = levelMatch ? clamp(parseInt(levelMatch[1], 10), 1, 3) : roleInfo.nivel;
-                  team.push({
-                    id,
-                    nombre: nameCandidate,
-                    rol: roleInfo.rol,
-                    nivel: levelValue,
-                    factor_velocidad: 1,
-                    restricciones: {}
-                  });
-                  seenNames.add(normalizedName);
-                });
-            }
-          });
-          return team;
-        }
+                  return;
+                }
+                const nameCandidate = rawItem.split(/[\-|]/)[0].trim() || rawItem;
+                const cleanedName = nameCandidate.replace(/\b\d+\b/g, '').trim();
+                const normalizedName = normalizeToken(cleanedName);
+                const isRoleOnly =
+                  roleInfo.match.test(normalizedName) && normalizedName.split(' ').length <= 2;
+                if (isRoleOnly) {
+                  const index = nextRoleIndex(roleInfo.rol);
+                  const roleLabel = index > 1 ? `${roleInfo.label} ${index}` : roleInfo.label;
+                  const name = makeUniqueName(roleLabel);
+                  addTeamMember(name, roleInfo, rawItem);
+                  return;
+                }
+                if (isInvalidPersonName(cleanedName)) {
+                  return;
+                }
+                const name = makeUniqueName(cleanedName);
+                nextRoleIndex(roleInfo.rol);
+                addTeamMember(name, roleInfo, rawItem);
+                return;
+              }
+
+              const nameCandidate = rawItem.split(/[\-|]/)[0].trim() || rawItem;
+              if (isInvalidPersonName(nameCandidate)) {
+                return;
+              }
+              const normalizedName = normalizeToken(nameCandidate);
+              if (seenNames.has(normalizedName)) {
+                return;
+              }
+              const id = generatePersonId(usedIds);
+              usedIds.add(id);
+              const roleFallback = guessRoleLevel(rawItem);
+              const levelMatch = rawItem.match(/nivel\s*(\d)/i);
+              const levelValue = levelMatch ? clamp(parseInt(levelMatch[1], 10), 1, 3) : roleFallback.nivel;
+              team.push({
+                id,
+                nombre: nameCandidate,
+                rol: roleFallback.rol,
+                nivel: levelValue,
+                factor_velocidad: 1,
+                restricciones: {}
+              });
+              seenNames.add(normalizedName);
+            });
+        });
+        return team;
+      }
 
       function parseResourceHintsLite(text) {
         const hints = [];
@@ -3839,7 +3984,7 @@ function normalizeLine(line) {
           if (!line) {
             continue;
           }
-          const match = line.match(/^\s*(\d{1,2})\s*[\.)-]\s+(.+)$/);
+          const match = String(line || '').match(ENUMERATION_STRONG_RE);
           if (match) {
             if (current) {
               blocks.push(current);
@@ -3859,7 +4004,7 @@ function normalizeLine(line) {
         }
         // Fallback: cualquier linea numerada en el documento.
         lines.forEach((line) => {
-          const match = String(line || '').match(/^\s*(\d{1,2})\s*[\.)-]\s+(.+)$/);
+          const match = String(line || '').match(ENUMERATION_STRONG_RE);
           if (match) {
             blocks.push({ number: match[1], lines: [line] });
           }
@@ -3867,7 +4012,7 @@ function normalizeLine(line) {
         return blocks;
       }
 
-      function parseDishBlock(blockLines) {
+      function parseDishBlock(blockLines, options = {}) {
         if (!Array.isArray(blockLines) || !blockLines.length) {
           return null;
         }
@@ -3875,20 +4020,25 @@ function normalizeLine(line) {
         if (!lines.length) {
           return null;
         }
-        const dishName = cleanDishTitle(lines[0]);
+        const nameOverride = options.nameOverride ? String(options.nameOverride) : '';
+        const dishName = nameOverride
+          ? sanitizeDishName(stripTimeFromLine(nameOverride))
+          : cleanDishTitle(lines[0]);
         if (!dishName) {
           return null;
         }
         const firstLine = lines[0];
-        const score = scoreDishCandidate(firstLine, {
-          dishName,
-          isExplicitBlock: true,
-          isNumbered: /^\s*\d{1,2}[\.\-)]\s+/.test(firstLine),
-          isBullet: /^[\-\u2022\*]\s+/.test(firstLine),
-          isCaps: isUppercaseLine(firstLine),
-          hasTime: Boolean(extractTimeRange(firstLine))
-        });
-        if (score < DISH_SCORE_THRESHOLD) {
+        const score = options.forceDish
+          ? 1
+          : scoreDishCandidate(firstLine, {
+            dishName,
+            isExplicitBlock: true,
+            isNumbered: ENUMERATION_STRONG_RE.test(firstLine),
+            isBullet: /^[\-\u2022\*]\s+/.test(firstLine),
+            isCaps: isUppercaseLine(firstLine),
+            hasTime: Boolean(extractTimeRange(firstLine))
+          });
+        if (!options.forceDish && score < DISH_SCORE_THRESHOLD) {
           return null;
         }
         let pax = extractPaxFromLine(lines[0]) || null;
@@ -3992,6 +4142,13 @@ function normalizeLine(line) {
           }
         });
 
+        const forcedProcesses = inferForcedProcessesFromDishName(dishName);
+        forcedProcesses.forEach((process) => {
+          if (!procesos.includes(process)) {
+            procesos.push(process);
+          }
+        });
+
         if (!recursos.length) {
           addResources(dishName);
         }
@@ -4005,7 +4162,8 @@ function normalizeLine(line) {
           procesos,
           recursos_hint: recursos,
           pax,
-          ingredientes
+          ingredientes,
+          forcedEnumeration: Boolean(options.forceDish)
         };
       }
       function buildMenuIRFromRawText(rawText, sourceMeta = null) {
@@ -4016,7 +4174,9 @@ function normalizeLine(line) {
           processCount: 0,
           inferredCount: 0,
           confidenceAvg: 0,
-          transforms: []
+          transforms: [],
+          forcedDishesFromEnumeration: 0,
+          forcedEnumerationNames: []
         };
         const { normalized, lines, baseLineCount, fallbackUsed } = normalizeLines(rawText, { diagnostics });
         const normalizedText = normalized;
@@ -4066,7 +4226,16 @@ function normalizeLine(line) {
             }
             return;
           }
-          const parsed = parseDishBlock(block.lines);
+          const firstLine = block?.lines?.[0] || '';
+          const enumMatch = String(firstLine || '').match(ENUMERATION_STRONG_RE);
+          const enumeratedName = enumMatch ? String(enumMatch[2] || '').trim() : '';
+          if (enumMatch && isObviousDishHeader(enumeratedName)) {
+            return;
+          }
+          const parsed = parseDishBlock(block.lines, {
+            forceDish: Boolean(enumMatch),
+            nameOverride: enumeratedName
+          });
           if (!parsed) {
             diagnostics.errors.push(`Plato ${index + 1}: bloque no interpretable.`);
             return;
@@ -4111,8 +4280,15 @@ function normalizeLine(line) {
             recursos_hint: recursosHint,
             pax: parsed.pax || null,
             ingredientes,
-            confianza: confidence
+            confianza: confidence,
+            forcedEnumeration: Boolean(parsed.forcedEnumeration)
           });
+          if (parsed.forcedEnumeration) {
+            diagnostics.forcedDishesFromEnumeration += 1;
+            if (diagnostics.forcedEnumerationNames.length < 10) {
+              diagnostics.forcedEnumerationNames.push(parsed.nombre);
+            }
+          }
         });
 
         const mergedPlatos = dedupeDishes(platos, {
@@ -4287,14 +4463,19 @@ function normalizeLine(line) {
 
         const addDish = (name, time, origin, rawLine, context = {}) => {
           const dishName = sanitizeDishName(stripTimeFromLine(name));
-          if (dishName.length <= 3 || isIngredientDishName(dishName)) {
+          if (!dishName) {
             return null;
           }
-          const score = scoreDishCandidate(rawLine || name, {
-            dishName,
-            ...context
-          });
-          if (score < DISH_SCORE_THRESHOLD) {
+          if (!context.forceDish && (dishName.length <= 3 || isIngredientDishName(dishName))) {
+            return null;
+          }
+          const score = context.forceDish
+            ? 1
+            : scoreDishCandidate(rawLine || name, {
+              dishName,
+              ...context
+            });
+          if (!context.forceDish && score < DISH_SCORE_THRESHOLD) {
             return null;
           }
           const dish = {
@@ -4305,11 +4486,16 @@ function normalizeLine(line) {
             categoria: currentCategory,
             procesos: [],
             recursos_hint: [],
-            pax: extractPaxFromLine(rawLine || name) || null
+            pax: extractPaxFromLine(rawLine || name) || null,
+            forcedEnumeration: Boolean(context.forceDish)
           };
           const hints = parseResourceHints(dishName);
           if (hints.length) {
             dish.recursos_hint = hints;
+          }
+          const forcedProcesses = inferForcedProcessesFromDishName(dishName);
+          if (forcedProcesses.length) {
+            dish.procesos = normalizeProcessList(dish.procesos.concat(forcedProcesses));
           }
           const merged = mergeDishCandidate(dishes, dish, DISH_SIMILARITY_THRESHOLD);
           if (merged) {
@@ -4378,6 +4564,27 @@ function normalizeLine(line) {
           if (!line) {
             return;
           }
+          const enumMatch = trimmed.match(ENUMERATION_STRONG_RE);
+          if (enumMatch) {
+            const enumeratedName = String(enumMatch[2] || '').trim();
+            if (!isObviousDishHeader(enumeratedName)) {
+              const time = extractTimeRange(enumeratedName);
+              currentDish = addDish(enumeratedName, time, 'PDF', trimmed, {
+                dishName: sanitizeDishName(stripTimeFromLine(enumeratedName)),
+                cleanedLine: line,
+                isNumbered: true,
+                isBullet: false,
+                isCaps: false,
+                hasTime: Boolean(time),
+                currentDish: Boolean(currentDish),
+                forceDish: true
+              });
+            } else {
+              currentDish = null;
+            }
+            mode = null;
+            return;
+          }
           if (lineLooksLikeResource(trimmed) || lineLooksLikeTeam(trimmed)) {
             return;
           }
@@ -4425,7 +4632,7 @@ function normalizeLine(line) {
             return;
           }
 
-          const isNumbered = /^\d{1,2}[\.\-)]\s+/.test(trimmed);
+          const isNumbered = ENUMERATION_STRONG_RE.test(trimmed) || /^\d{1,2}[\.\-)]\s+/.test(trimmed);
           const isBullet = /^[\-\u2022\*]\s+/.test(trimmed);
           const isCaps = isUppercaseLine(line);
           const time = extractTimeRange(line);
@@ -4954,15 +5161,26 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         }
         const typeCounts = { HORNO: 0, FOGONES: 0, ESTACION: 0, FREGADERO: 0 };
         const processCounts = {};
+        const hotProcesses = new Set(['COCER', 'HERVIR', 'SALTEAR', 'SOFREIR', 'FREIR', 'REDUCIR']);
+        const hornoProcesses = new Set(['HORNEAR', 'GRATINAR', 'ASAR']);
+        const stationProcesses = new Set(['LAVAR', 'CORTAR', 'MEZCLAR', 'EMPLATAR']);
         let totalProcesses = 0;
         dishes.forEach((dish) => {
           const processes = inferDishProcessesForResources(dish);
           processes.forEach((process) => {
             totalProcesses += 1;
             processCounts[process] = (processCounts[process] || 0) + 1;
-            const expected = getExpectedResourceForProcess(process, []);
-            if (expected.needs && expected.typeKey) {
-              typeCounts[expected.typeKey] = (typeCounts[expected.typeKey] || 0) + 1;
+            if (hornoProcesses.has(process)) {
+              typeCounts.HORNO += 1;
+            }
+            if (hotProcesses.has(process) || process === 'BANO_MARIA') {
+              typeCounts.FOGONES += 1;
+            }
+            if (stationProcesses.has(process)) {
+              typeCounts.ESTACION += 1;
+            }
+            if (process === 'LAVAR') {
+              typeCounts.FREGADERO += 1;
             }
           });
         });
@@ -4985,52 +5203,50 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             evidence
           });
         };
-        const hornoCount = typeCounts.HORNO || 0;
-        const fogonCount = typeCounts.FOGONES || 0;
-        const stationCount = typeCounts.ESTACION || 0;
-        const sinkCount = typeCounts.FREGADERO || 0;
         const dishCount = dishes.length;
-        const estTaskCount = totalProcesses;
-
-        const hornoCap = hornoCount >= 3 ? 2 : hornoCount >= 1 ? 1 : 0;
-        const fogonCap = fogonCount >= 7 ? 3 : fogonCount >= 4 ? 2 : fogonCount >= 1 ? 1 : 0;
-        const stationCap = dishCount
-          ? dishCount >= 4 || estTaskCount >= 12 || stationCount >= 6
-            ? 2
-            : 1
-          : 0;
-        const sinkCap = sinkCount >= 4 || dishCount >= 4 ? 2 : sinkCount ? 1 : 0;
+        const hornoCap = typeCounts.HORNO > 0 ? 1 : 0;
+        let fogonCap = 0;
+        if (typeCounts.FOGONES > 0) {
+          fogonCap = Math.max(1, Math.ceil(dishCount / 2));
+        }
+        if (processCounts.BANO_MARIA) {
+          fogonCap = Math.max(fogonCap, 1);
+        }
+        fogonCap = Math.min(fogonCap, 6);
+        let stationCap = typeCounts.ESTACION > 0 ? Math.max(1, Math.ceil(dishCount / 3)) : 0;
+        stationCap = Math.min(stationCap, 4);
+        const sinkCap = typeCounts.FREGADERO > 0 ? 1 : 0;
 
         if (hornoCap) {
           addResource(
             'HORNO',
             hornoCap,
-            [`procesos hornear/gratinar/bano maria=${hornoCount}`],
-            clamp(0.6 + hornoCount * 0.05, 0.6, 0.85)
+            ['procesos: hornear/gratinar/asar'],
+            clamp(0.65 + typeCounts.HORNO * 0.05, 0.65, 0.85)
           );
         }
         if (fogonCap) {
           addResource(
             'FOGONES',
             fogonCap,
-            [`procesos calientes=${fogonCount}`],
-            clamp(0.6 + fogonCount * 0.04, 0.6, 0.85)
+            [`platos=${dishCount}`, 'procesos: cocer/hervir/saltear/freir/reducir'],
+            clamp(0.65 + typeCounts.FOGONES * 0.04, 0.65, 0.85)
           );
         }
         if (stationCap) {
           addResource(
             'ESTACION',
             stationCap,
-            [`platos=${dishCount}`, `tareas~${estTaskCount}`],
-            clamp(0.6 + stationCount * 0.04, 0.6, 0.85)
+            [`platos=${dishCount}`, 'procesos: lavar/cortar/mezclar/emplatar'],
+            clamp(0.6 + typeCounts.ESTACION * 0.04, 0.6, 0.85)
           );
         }
         if (sinkCap) {
           addResource(
             'FREGADERO',
             sinkCap,
-            [`lavar/escurrir=${sinkCount}`],
-            clamp(0.6 + sinkCount * 0.04, 0.6, 0.85)
+            ['procesos: lavar'],
+            clamp(0.6 + typeCounts.FREGADERO * 0.04, 0.6, 0.8)
           );
         }
         return resources;
@@ -5040,64 +5256,22 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         if (!draft || draft.isEmpty) {
           return [];
         }
-        const dishes = Array.isArray(draft.platos) ? draft.platos : [];
-        const dishCount = dishes.length || new Set((tasks || []).map((task) => task.plato)).size;
-        if (!dishCount) {
+        const taskCount = Array.isArray(tasks) ? tasks.length : 0;
+        if (!taskCount) {
           return [];
         }
-        const taskCount = Array.isArray(tasks) ? tasks.length : 0;
-        const hotProcesses = new Set([
-          'HORNEAR',
-          'GRATINAR',
-          'BANO_MARIA',
-          'COCER',
-          'SALTEAR',
-          'SOFREIR',
-          'FREIR',
-          'REDUCIR'
-        ]);
-        const hotDishes = new Set();
-        const hasEmplatar = (tasks || []).some((task) => task.proceso === 'EMPLATAR');
-        (tasks || []).forEach((task) => {
-          if (hotProcesses.has(task.proceso)) {
-            hotDishes.add(task.plato);
-          }
-        });
-        const hotDishCount = hotDishes.size;
-        const hasHorno = (resources || []).some(
-          (resource) => normalizeResourceName(resource.typeKey || resource.nombre || resource.id) === 'HORNO'
-        );
-        const hasFogones = (resources || []).some(
-          (resource) => normalizeResourceName(resource.typeKey || resource.nombre || resource.id) === 'FOGONES'
-        );
-        let target = 2;
-        const evidence = [];
-        if (dishCount >= 3) {
-          target = Math.max(target, 3);
-          evidence.push(`platos=${dishCount}`);
+        const pax = sanitizeInt(draft.comensales ?? draft.pax ?? null, 0);
+        const evidence = [`tareas=${taskCount}`];
+        if (pax) {
+          evidence.push(`pax=${pax}`);
         }
-        if (dishCount >= 5) {
-          target = 4;
-          evidence.push(`platos>=5`);
+        let pinches = Math.ceil(taskCount / 10);
+        pinches = Math.min(pinches, 6);
+        if (pax >= 20) {
+          pinches += Math.floor(pax / 20);
         }
-        if (taskCount >= 12) {
-          target = Math.max(target, 3);
-          evidence.push(`tareas=${taskCount}`);
-        }
-        if (taskCount >= 18) {
-          target = 4;
-          evidence.push(`tareas>=18`);
-        }
-        if (hotDishCount >= 3) {
-          target = Math.max(target, 3);
-          evidence.push(`platos_calientes=${hotDishCount}`);
-        }
-        if (hasHorno && hasFogones && hasEmplatar && hotDishCount >= 2) {
-          target = Math.max(target, 3);
-          evidence.push('horno+fogones+emplatado');
-        }
-        target = clamp(target, 2, 4);
-        const confidence = clamp(0.6 + evidence.length * 0.05, 0.6, 0.8);
+        pinches = Math.min(pinches, 8);
+        const confidence = clamp(0.6 + evidence.length * 0.05, 0.6, 0.82);
         const ids = new Set();
         const team = [];
         const addPerson = (name, role, level) => {
@@ -5116,14 +5290,8 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           });
         };
         addPerson('Chef', 'CHEF', 3);
-        if (target >= 2) {
-          addPerson('Pinche 1', 'PINXE', 2);
-        }
-        if (target >= 3) {
-          addPerson('Pinche 2', 'PINXE', 1);
-        }
-        if (target >= 4) {
-          addPerson('Pinche 3', 'PINXE', 1);
+        for (let i = 0; i < pinches; i += 1) {
+          addPerson(`Pinche ${i + 1}`, 'PINCHE', 2);
         }
         return team;
       }
@@ -8189,6 +8357,12 @@ async function handlePdfFile(file) {
             missingResources: Array.from(missingResources),
             missingDurations,
             unassignedTasks,
+            inferredResources: (planToCheck?.recursos || []).filter(
+              (resource) => normalizeSource(resource.source, 'explicit') === 'inferred'
+            ),
+            inferredTeam: (planToCheck?.equipo || []).filter(
+              (person) => normalizeSource(person.source, 'explicit') === 'inferred'
+            ),
             counts: {
               warnings: (warnings || []).length,
               errors: (errors || []).length,
@@ -8725,7 +8899,7 @@ async function handlePdfFile(file) {
             severity: 'warn',
             title: 'Tareas sin asignar',
             meta: `${diagnostics.unassignedTasks} tareas`,
-            action: 'validation-assign',
+            action: 'distribute-tasks',
             label: 'Repartir tareas'
           });
         }
@@ -8734,7 +8908,7 @@ async function handlePdfFile(file) {
             severity: 'warn',
             title: 'Recursos faltantes',
             meta: diagnostics.missingResources.join(', '),
-            action: 'validation-add-resources',
+            action: 'assign-missing-resources',
             label: 'Asignar recursos'
           });
         }
@@ -9255,20 +9429,27 @@ async function handlePdfFile(file) {
 
       function renderAssignments() {
         const reviewSection = document.getElementById('review');
-        const isEmptyPlan = Boolean(plan && plan.isEmpty);
+        const reviewEmptyEl = document.getElementById('review-empty');
+        const isEmptyPlan = Boolean(plan?.isEmpty === true);
         const hasTasks = Boolean(plan && Array.isArray(plan.tareas) && plan.tareas.length);
+        const isNoTasksPlan = !isEmptyPlan && !hasTasks;
         if (reviewSection) {
-          reviewSection.classList.toggle('hidden', isEmptyPlan || !hasTasks);
+          reviewSection.classList.toggle('hidden', isEmptyPlan);
+        }
+        if (reviewEmptyEl) {
+          reviewEmptyEl.hidden = !isNoTasksPlan;
         }
         if (isEmptyPlan || !hasTasks) {
           if (assignmentListEl) {
             assignmentListEl.innerHTML = '';
           }
           if (incompleteCountEl) {
-            incompleteCountEl.textContent = 'Errores bloqueantes: 0 | Avisos: 0';
+            incompleteCountEl.textContent = isNoTasksPlan
+              ? 'No se generaron tareas con este menu.'
+              : 'Errores bloqueantes: 0 | Avisos: 0';
           }
           if (normalizedCountEl) {
-            normalizedCountEl.textContent = '';
+            normalizedCountEl.textContent = isNoTasksPlan ? 'Revisa el formato o reintenta interpretar.' : '';
           }
           return;
         }
@@ -10173,11 +10354,13 @@ async function handlePdfFile(file) {
                       : 'PENDIENTE';
                   return `
                     <div class="${classes}" data-action="toggle" data-task-id="${task.id}">
+                      <div class="ticket-number"></div>
                       <div class="ticket-title">${dishLabel}${inferIcon}</div>
                       <div class="ticket-body">${actionLabel}</div>
                       <div class="ticket-line"><span>${resourceIcon} ${resourceLabel}</span><span>${durationLabel}</span></div>
                       <div class="ticket-line"><span>Asignado</span><span>${assignedLabel}</span></div>
                       <div class="ticket-line"><span>Estado</span><span class="badge state">${stateText}</span></div>
+                      <div class="ticket-barcode"></div>
                     </div>
                   `;
                 })
@@ -10440,10 +10623,12 @@ function updateControls() {
         document.body.classList.toggle('expert', state.expertMode);
         document.body.classList.toggle('service-active', state.phaseStatus !== 'idle');
         document.body.classList.toggle('manual-open', state.manualTextOpen);
-        document.body.classList.toggle(
-          'plan-empty',
-          Boolean(plan?.isEmpty || !(plan?.tareas?.length))
-        );
+        const hasPlanTasks = Boolean(plan && Array.isArray(plan.tareas) && plan.tareas.length > 0);
+        const isPlanEmpty = Boolean(plan?.isEmpty === true);
+        const isPlanNoTasks = !isPlanEmpty && !hasPlanTasks;
+        document.body.classList.toggle('plan-empty', isPlanEmpty);
+        document.body.classList.toggle('plan-no-tasks', isPlanNoTasks);
+        document.body.classList.toggle('plan-has-tasks', hasPlanTasks);
         if (advancedPanelEl) {
           advancedPanelEl.open = state.advancedOpen;
         }
@@ -10465,7 +10650,6 @@ function updateControls() {
         if (modePrepBtn) {
           modePrepBtn.classList.toggle('active', state.uiMode === 'prep');
         }
-        const hasPlanTasks = Boolean(plan && Array.isArray(plan.tareas) && plan.tareas.length > 0);
         // Allow kitchen navigation always; only disable actions when no plan tasks.
         if (goKitchenBtn) {
           goKitchenBtn.disabled = false;

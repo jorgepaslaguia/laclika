@@ -266,6 +266,22 @@
                       Sin recurso requerido
                     </label>
                   </div>
+                  <div id="review-empty" class="review-empty ticket" hidden>
+                    <div class="ticket-header">No se generaron tareas</div>
+                    <div class="ticket-body">
+                      Revisa el texto del menu o ajusta el formato antes de interpretar.
+                    </div>
+                    <div class="controls">
+                      <button
+                        id="retry-interpret"
+                        class="btn primary"
+                        type="button"
+                        data-action="retry-interpret"
+                      >
+                        Reintentar interpretar
+                      </button>
+                    </div>
+                  </div>
                   <div id="assignment-list" class="assign-grid"></div>
                 </section>
                 <section class="section" id="prep-context">

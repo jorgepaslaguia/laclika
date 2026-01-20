@@ -124,5 +124,29 @@ window.PARSER_FIXTURES = [
     level: 1,
     text: 'MENU MINI\n1. ENSALADA SIMPLE',
     expect: { platesMin: 1, tasksMin: 4, phasesMin: 2 }
+  },
+  {
+    id: 'h4_team_counts_plus',
+    level: 4,
+    text: 'EQUIPO: Chef + 2 pinches\nMENU\n1. ENSALADA SIMPLE\nProcesos: LAVAR, CORTAR, MONTAR',
+    expect: { platesMin: 1, tasksMin: 3, phasesMin: 2, teamMin: 3 }
+  },
+  {
+    id: 'h4_team_counts_x',
+    level: 4,
+    text: 'EQUIPO: Chef x2; pinche x3\nMENU\n1. SOPA\nProcesos: COCER, EMPLATAR',
+    expect: { platesMin: 1, tasksMin: 3, phasesMin: 2, teamMin: 5 }
+  },
+  {
+    id: 'h4_team_counts_plural',
+    level: 4,
+    text: 'EQUIPO: 2 chefs y 4 pinches\nMENU\n1. ARROZ\nProcesos: COCER, EMPLATAR',
+    expect: { platesMin: 1, tasksMin: 3, phasesMin: 2, teamMin: 6 }
+  },
+  {
+    id: 'h4_team_mixed_roles',
+    level: 4,
+    text: 'EQUIPO: Jefe + auxiliar + 2 pinches\nMENU\n1. ENSALADA\nProcesos: LAVAR, MONTAR',
+    expect: { platesMin: 1, tasksMin: 3, phasesMin: 2, teamMin: 4 }
   }
 ];
