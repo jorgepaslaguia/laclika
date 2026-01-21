@@ -4540,6 +4540,71 @@ function normalizeLine(line) {
         return { equipo, recursos, platos: mergedPlatos, lines };
       }
 
+      function fallbackDishesFromLines(lines, opts = {}) {
+        const safeLines = Array.isArray(lines) ? lines : [];
+        const baseLineCount = Number.isFinite(opts.baseLineCount) ? opts.baseLineCount : safeLines.length;
+        const maxPlatos = Number.isFinite(opts.maxPlatos)
+          ? opts.maxPlatos
+          : computeMaxPlatos(safeLines.length, baseLineCount);
+        const dishes = [];
+        const seen = new Set();
+        const metadataHeader = /^(menu(?:\s+degustacion)?|ingredientes?|procesos?|recursos?|equipo|alergias?|pax|raciones|comensales|observaciones|notas?)\b/i;
+
+        safeLines.forEach((rawLine) => {
+          if (dishes.length >= maxPlatos) {
+            return;
+          }
+          const trimmed = String(rawLine || '').trim();
+          if (!trimmed) {
+            return;
+          }
+          const normalized = normalizeToken(trimmed);
+          if (!normalized) {
+            return;
+          }
+          if (metadataHeader.test(normalized)) {
+            return;
+          }
+          if (isMetadataLine(trimmed) || lineLooksLikeResource(trimmed) || lineLooksLikeTeam(trimmed)) {
+            return;
+          }
+          const alphaNum = normalized.replace(/[^a-z0-9]/g, '').trim();
+          if (!alphaNum || alphaNum.length < 3) {
+            return;
+          }
+          let candidate = trimmed;
+          const sectionMatch = trimmed.match(/^(entrantes?|principal(?:es)?|postres?|platos?)\s*:\s*(.+)$/i);
+          if (sectionMatch) {
+            candidate = String(sectionMatch[2] || '').trim();
+          }
+          candidate = normalizeLine(candidate);
+          const dishName = sanitizeDishName(stripTimeFromLine(candidate));
+          if (!dishName || dishName.length <= 3 || isIngredientDishName(dishName)) {
+            return;
+          }
+          const dishKey = normalizeDishKey(dishName);
+          if (dishKey && seen.has(dishKey)) {
+            return;
+          }
+          if (dishKey) {
+            seen.add(dishKey);
+          }
+          dishes.push({
+            id: makeIdFromName(dishName, 'PLATO'),
+            nombre: dishName,
+            tiempo: extractTimeRange(candidate),
+            origen: 'FALLBACK',
+            categoria: null,
+            procesos: [],
+            recursos_hint: [],
+            pax: extractPaxFromLine(candidate) || null,
+            forcedEnumeration: true
+          });
+        });
+
+        return dishes;
+      }
+
       function parseMenuDraft(text) {
         const normalized = normalizeText(text);
         const normalizedForMatch = normalizeToken(normalized);
@@ -4786,40 +4851,12 @@ function normalizeLine(line) {
         });
 
         if (!dishes.length && Array.isArray(lines)) {
-          const fallbackHeader = /^\s*(menu|recursos?|equipo|alergias?|observaciones|notas?)\s*[:\-]?/i;
-          const fallbackIngredients = /^\s*(ingredientes?|ing\.?)\s*[:\-]/i;
-          const fallbackPax = /^\s*(pax|raciones|comensales)\b/i;
-          let stopAtIngredients = false;
-          lines.forEach((rawLine) => {
-            if (dishes.length >= maxPlatos || stopAtIngredients) {
-              return;
+          // Fallback: 1 linea = 1 plato si el parser no detecta platos.
+          const fallback = fallbackDishesFromLines(lines, { baseLineCount, maxPlatos });
+          fallback.forEach((dish) => {
+            if (dishes.length < maxPlatos) {
+              dishes.push(dish);
             }
-            const trimmed = String(rawLine || '').trim();
-            if (!trimmed) {
-              return;
-            }
-            if (fallbackIngredients.test(trimmed)) {
-              stopAtIngredients = true;
-              return;
-            }
-            if (fallbackHeader.test(trimmed) || fallbackPax.test(trimmed)) {
-              return;
-            }
-            if (lineLooksLikeResource(trimmed) || lineLooksLikeTeam(trimmed)) {
-              return;
-            }
-            if (trimmed.includes(':') && PROCESS_VERB_REGEX.test(trimmed)) {
-              return;
-            }
-            let candidate = trimmed;
-            const sectionMatch = trimmed.match(/^(entrantes?|principal(?:es)?|postres?|platos?)\s*:\s*(.+)$/i);
-            if (sectionMatch) {
-              candidate = String(sectionMatch[2] || '').trim();
-            }
-            if (!candidate) {
-              return;
-            }
-            addDish(candidate, extractTimeRange(candidate), 'PDF', candidate, { forceDish: true });
           });
         }
 
@@ -7332,6 +7369,22 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
               fallbackUsed,
               lines
             };
+          }
+
+          if (draft && Array.isArray(draft.platos) && !draft.platos.length) {
+            const fallbackLines = parseLines.length ? parseLines : lines;
+            const fallbackPlatos = fallbackDishesFromLines(fallbackLines, {
+              baseLineCount,
+              maxPlatos: computeMaxPlatos(fallbackLines.length, baseLineCount)
+            });
+            if (fallbackPlatos.length) {
+              draft.platos = fallbackPlatos;
+              draft.fallbackUsed = true;
+              debugLog('menu-draft-fallback', {
+                dishesCount: fallbackPlatos.length,
+                dishesPreview: fallbackPlatos.slice(0, 5).map((plato) => plato?.nombre || '')
+              });
+            }
           }
 
           try {
