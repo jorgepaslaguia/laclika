@@ -161,7 +161,7 @@
     const before = readStoredRecipes();
     const beforeCount = before.list.length;
 
-    window.processMenuText('Ensalada mixta\nPollo al horno\nFlan casero');
+    window.processMenuText('Ensalada mixta\nPollo al horno\nFlan casero', { userTriggered: true, source: 'smoke' });
     const afterInterpret = readStoredRecipes();
     const interpretOk = afterInterpret.list.length === beforeCount;
 

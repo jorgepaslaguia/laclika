@@ -476,12 +476,12 @@
     const runRetryInterpret = () => {
       const manualValue = manualTextEl ? String(manualTextEl.value || '').trim() : '';
       if (manualValue) {
-        processMenuText(manualValue);
+        processMenuText(manualValue, { userTriggered: true, source: 'retry' });
         return;
       }
       const lastText = typeof appState === 'object' ? String(appState.menuRawText || '').trim() : '';
       if (lastText) {
-        processMenuText(lastText);
+        processMenuText(lastText, { userTriggered: true, source: 'retry' });
         return;
       }
       if (typeof handleManualText === 'function') {

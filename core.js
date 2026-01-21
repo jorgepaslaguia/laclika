@@ -2171,10 +2171,11 @@ if (typeof window !== 'undefined') {
       }
 
 
-      function normalizePerson(person, existingIds) {
+      function normalizePerson(person, existingIds, mergedPlatos = []) {
         if (!person) {
           return null;
         }
+        const safePlatos = Array.isArray(mergedPlatos) ? mergedPlatos : [];
         const name = String(person.nombre || person.name || 'Persona').trim() || 'Persona';
         const idBase = person.id || generatePersonId(existingIds || new Set());
         const id = ensureUniqueId(String(idBase), existingIds || new Set());
@@ -2185,8 +2186,8 @@ if (typeof window !== 'undefined') {
         );
         const evidence = normalizeEvidence(person.evidence || person.evidencia || person.meta?.evidence || []);
         debugLog('menu-ir-lines', {
-          dishesCount: mergedPlatos.length,
-          dishesPreview: mergedPlatos.slice(0, 5).map((plato) => plato?.nombre || '')
+          dishesCount: safePlatos.length,
+          dishesPreview: safePlatos.slice(0, 5).map((plato) => plato?.nombre || '')
         });
         return {
           id,
@@ -2310,6 +2311,11 @@ if (typeof window !== 'undefined') {
       function normalizePlan(inputPlan) {
         const raw = deepClone(inputPlan ?? EMPTY_PLAN);
         const allowEmpty = Boolean(raw?.isEmpty);
+        const mergedPlatos = Array.isArray(raw?.platos)
+          ? raw.platos
+          : Array.isArray(raw?.dishes)
+            ? raw.dishes
+            : [];
         const rawResources = allowEmpty ? [] : raw.recursos || raw.resources?.items || raw.resources || [];
         const rawTeam = allowEmpty ? [] : raw.equipo || raw.team || [];
         const rawTasks = allowEmpty ? [] : raw.tareas || raw.tasks || [];
@@ -2322,7 +2328,7 @@ if (typeof window !== 'undefined') {
 
         const personIds = new Set();
         const team = rawTeam
-          .map((person) => normalizePerson(person, personIds))
+          .map((person) => normalizePerson(person, personIds, mergedPlatos))
           .filter(Boolean);
         team.forEach((person) => personIds.add(person.id));
 
@@ -3434,6 +3440,39 @@ function normalizeLine(line) {
         }
         const cleaned = stripTaskNoise(task.nombre || 'tarea');
         return shortenText(cleaned || 'tarea', 60);
+      }
+
+      function updateTaskNameForProcess(task, processKey) {
+        if (!task) {
+          return;
+        }
+        const currentName = String(task.nombre || '').trim();
+        if (task.manualName) {
+          return;
+        }
+        const dishName = String(task.plato || task.dish || '').trim();
+        const process = processKey || task.proceso || inferProcessFromName(currentName);
+        const verb = processToVerb(process, dishName);
+        const baseName = dishName ? `${verb} ${dishName}` : verb || currentName;
+        const normalizedName = normalizeToken(currentName);
+        const normalizedDish = normalizeToken(dishName);
+        const normalizedVerb = normalizeToken(verb);
+        const looksAuto =
+          !currentName ||
+          /\[INFERIDO\]/i.test(currentName) ||
+          task.autoNamed === true ||
+          (normalizedVerb && normalizedName.startsWith(normalizedVerb) && (!normalizedDish || normalizedName.includes(normalizedDish)));
+        if (!looksAuto) {
+          return;
+        }
+        const keepInferTag =
+          /\[INFERIDO\]/i.test(currentName) ||
+          task.origen === 'IA' ||
+          task.origen === 'FALLBACK' ||
+          task.origin === 'IA' ||
+          task.origin === 'FALLBACK';
+        task.nombre = keepInferTag ? withInferTag(baseName, true) : baseName;
+        task.autoNamed = true;
       }
 
       function updateTaskLabels(task, resources) {
@@ -7285,7 +7324,13 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         }
         return { text: fullText.trim(), error: null };
       }
-      function processMenuText(text) {
+      function processMenuText(text, options = {}) {
+        if (!options.userTriggered) {
+          if (state.debugEnabled) {
+            console.debug('[processMenuText] skip: not user-triggered');
+          }
+          return null;
+        }
         const normalizedText = normalizeText(text);
         const normalizedForMatch = normalizeToken(normalizedText);
         const { lines, baseLineCount, fallbackUsed } = normalizeLines(normalizedText);
@@ -7540,7 +7585,7 @@ async function handlePdfFile(file) {
           setState({ manualTextOpen: true });
           goToView('prep', { scrollToUpload: true, focusManual: true });
           try {
-            processMenuText(result.text);
+            processMenuText(result.text, { userTriggered: true, source: 'pdf' });
             pdfState.status = 'Menu interpretado.';
             appState.lastPdfError = null;
             updatePdfStatus();
@@ -7592,7 +7637,7 @@ async function handlePdfFile(file) {
         appState.menuRawTextSource = { type: 'manual', name: pdfState.name || null };
         updateDebugText();
         try {
-          processMenuText(text);
+          processMenuText(text, { userTriggered: true, source: 'manual' });
           pdfState.status = 'Texto manual interpretado.';
           appState.lastPdfError = null;
           updatePdfStatus();
@@ -11029,9 +11074,13 @@ function updateControls() {
         if (!task || task.estado !== 'PENDIENTE') {
           return;
         }
-        if (field === 'fase') {
+        const fieldKey = String(field || '').trim();
+        if (!fieldKey) {
+          return;
+        }
+        if (fieldKey === 'fase') {
           task.fase = value;
-        } else if (field === 'recurso') {
+        } else if (fieldKey === 'recurso') {
           const resourceId = value || null;
           setTaskResource(task, resourceId && recursoById[resourceId] ? resourceId : null);
           if (task.recurso_id) {
@@ -11042,15 +11091,17 @@ function updateControls() {
               updateTaskNameForProcess(task, newProcess);
             }
           }
-          } else if (field === 'duracion') {
-            const duration = Math.max(1, Number(value) || 1);
-            task.duracion_min = duration;
-            task.duracion_inferida = false;
-        } else if (field === 'asignado') {
-            task.asignado_a_id = value || null;
-            task.locked = Boolean(value);
-            task.autoAssigned = false;
-          }
+        } else if (fieldKey === 'duracion') {
+          const duration = Math.max(1, Number(value) || 1);
+          task.duracion_min = duration;
+          task.duracion_inferida = false;
+        } else if (fieldKey === 'asignado') {
+          task.asignado_a_id = value || null;
+          task.locked = Boolean(value);
+          task.autoAssigned = false;
+        } else {
+          return;
+        }
         updateTaskLabels(task, plan.recursos);
         validateAndStore();
         calculatePlan({ silent: true });
