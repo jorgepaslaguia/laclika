@@ -68,6 +68,58 @@
     (typeof window !== 'undefined' && window.EMPTY_PLAN) ||
     (typeof EMPTY_PLAN !== 'undefined' ? EMPTY_PLAN : null) ||
     { tareas: [], recursos: [], equipo: [], isEmpty: true };
+  const ensureUiState = () => {
+    const rootState = window.state;
+    if (!rootState || typeof rootState !== 'object') {
+      return;
+    }
+    if (!rootState.ui || typeof rootState.ui !== 'object') {
+      rootState.ui = { panel: 'none', tab: 'resources' };
+      return;
+    }
+    const panel = rootState.ui.panel;
+    if (panel !== 'none' && panel !== 'ops' && panel !== 'adv') {
+      rootState.ui.panel = 'none';
+    }
+    const tab = rootState.ui.tab;
+    if (tab !== 'resources' && tab !== 'team' && tab !== 'assignments') {
+      rootState.ui.tab = 'resources';
+    }
+  };
+  const requestRender = (() => {
+    let scheduled = false;
+    return () => {
+      if (scheduled) {
+        return;
+      }
+      scheduled = true;
+      const run = () => {
+        scheduled = false;
+        if (typeof window.render === 'function') {
+          window.render();
+        }
+      };
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(run);
+      } else {
+        window.setTimeout(run, 0);
+      }
+    };
+  })();
+  let renderUiPanels = () => {};
+  const wrapRender = () => {
+    if (window.__RENDER_WRAPPED__) {
+      return;
+    }
+    const baseRender = window.render;
+    window.render = () => {
+      ensureUiState();
+      const result = typeof baseRender === 'function' ? baseRender() : undefined;
+      renderUiPanels();
+      return result;
+    };
+    window.__RENDER_WRAPPED__ = true;
+  };
 
   const getMissingCore = () =>
     CORE_REQUIRED.filter((name) => typeof window[name] !== 'function');
@@ -309,6 +361,7 @@
     if (!checkCriticalDom()) {
       return;
     }
+    ensureUiState();
 
     const planStatusEl = document.getElementById('plan-status');
     const dropZoneEl = document.getElementById('pdfDropZone');
@@ -342,6 +395,11 @@
     const advancedToggleBtn = document.getElementById('advanced-toggle');
     const settingsPanelEl = document.getElementById('settings-panel');
     const settingsIssuesEl = document.getElementById('settings-issues');
+    const opsPanelEl = document.getElementById('opsPanel');
+    const opsResourcesEl = document.getElementById('opsResources');
+    const opsTeamEl = document.getElementById('opsTeam');
+    const opsAssignmentsEl = document.getElementById('opsAssignments');
+    const advPanelEl = document.getElementById('advPanel');
     const btnFixAll = document.getElementById('btn-fix-all');
     const btnAssignResources = document.getElementById('btn-assign-resources');
     const btnAutoassignBalanced = document.getElementById('btn-autoassign-balanced');
@@ -376,6 +434,28 @@
     const modeLibraryBtnEl = byIdAny(['mode-library', 'nav-library', 'btn-library']);
     const modePrepBtnEl = byIdAny(['mode-prep', 'nav-prep', 'btn-prep']);
     const modeKitchenBtnEl = byIdAny(['mode-kitchen', 'nav-kitchen', 'btn-kitchen']);
+    renderUiPanels = () => {
+      ensureUiState();
+      const uiState = window.state?.ui || { panel: 'none', tab: 'resources' };
+      const showOps = uiState.panel === 'ops';
+      const showAdv = uiState.panel === 'adv';
+      if (opsPanelEl) {
+        opsPanelEl.classList.toggle('hidden', !showOps);
+      }
+      if (advPanelEl) {
+        advPanelEl.classList.toggle('hidden', !showAdv);
+      }
+      if (opsResourcesEl) {
+        opsResourcesEl.classList.toggle('hidden', !showOps || uiState.tab !== 'resources');
+      }
+      if (opsTeamEl) {
+        opsTeamEl.classList.toggle('hidden', !showOps || uiState.tab !== 'team');
+      }
+      if (opsAssignmentsEl) {
+        opsAssignmentsEl.classList.toggle('hidden', !showOps || uiState.tab !== 'assignments');
+      }
+    };
+    wrapRender();
 
     const requestRecipeName = (defaultName = '') => {
       const seed = String(defaultName || '').trim();
@@ -408,6 +488,67 @@
       }
       const detail = reason ? `: ${reason}` : '';
       console.warn(`[action] ${action}${detail}`);
+    };
+    const dispatchAction = (action) => {
+      ensureUiState();
+      if (!action) {
+        return false;
+      }
+      const uiState = window.state?.ui;
+      if (!uiState) {
+        return false;
+      }
+      const openOps = (tab) => {
+        uiState.panel = 'ops';
+        uiState.tab = tab || uiState.tab || 'resources';
+        requestRender();
+        return true;
+      };
+      const openAdv = () => {
+        uiState.panel = 'adv';
+        requestRender();
+        return true;
+      };
+      const closePanels = () => {
+        uiState.panel = 'none';
+        requestRender();
+        return true;
+      };
+      switch (action) {
+        case 'open-ops':
+          return openOps(uiState.tab || 'resources');
+        case 'open-ops-resources':
+          return openOps('resources');
+        case 'open-ops-team':
+          return openOps('team');
+        case 'open-ops-assignments':
+          return openOps('assignments');
+        case 'open-adv':
+          return openAdv();
+        case 'close-panels':
+          return closePanels();
+        case 'save-ops-changes':
+        case 'save-adv-changes':
+          return closePanels();
+        default:
+          break;
+      }
+      if (
+        action === 'add-missing-resources' ||
+        action === 'assign-missing-resources' ||
+        action === 'auto-assign-resources' ||
+        action === 'add-resources' ||
+        action === 'ignore-missing-resources'
+      ) {
+        return openOps('resources');
+      }
+      if (action === 'auto-assign-team' || action === 'auto-assign-tasks' || action === 'distribute-tasks') {
+        return openOps('assignments');
+      }
+      if (action === 'auto-assign-durations') {
+        return openAdv();
+      }
+      return false;
     };
 
     const handleAddMissingResources = () => {
@@ -767,25 +908,8 @@
           return;
         }
         try {
-          if (action === 'auto-assign-team' || action === 'auto-assign-tasks' || action === 'distribute-tasks') {
-            handleAutoAssignTeam();
-            return;
-          }
-          if (
-            action === 'add-missing-resources' ||
-            action === 'auto-assign-resources' ||
-            action === 'assign-missing-resources' ||
-            action === 'add-resources'
-          ) {
-            handleAddMissingResources();
-            return;
-          }
-          if (action === 'auto-assign-durations') {
-            handleAutoAssignDurations();
-            return;
-          }
-          if (action === 'ignore-missing-resources') {
-            handleIgnoreMissingResources();
+          if (dispatchAction(action)) {
+            event.preventDefault();
             return;
           }
           if (action === 'retry-interpret') {
@@ -807,6 +931,9 @@
       }
       event.preventDefault();
       event.stopPropagation();
+      if (dispatchAction(button.dataset.action)) {
+        return;
+      }
       handleAlertAction(button.dataset.action);
     });
     on(aiSummaryEl, 'click', (event) => {
@@ -816,10 +943,16 @@
       }
       event.preventDefault();
       event.stopPropagation();
+      if (dispatchAction(button.dataset.action)) {
+        return;
+      }
       handleAlertAction(button.dataset.action);
     });
     on(alertsReviewBtn, 'click', () => {
       if (alertsReviewBtn.disabled) {
+        return;
+      }
+      if (dispatchAction(alertsReviewBtn?.dataset?.action)) {
         return;
       }
       handleAlertAction('review');
@@ -846,12 +979,18 @@
       if (!button) {
         return;
       }
+      if (dispatchAction(button.dataset.action)) {
+        return;
+      }
       handleValidationAction(button.dataset.action, button.dataset.issueId);
     });
     if (prepIssuesGridEl) {
       prepIssuesGridEl.addEventListener('click', (event) => {
         const button = event.target.closest('button[data-action]');
         if (!button) {
+          return;
+        }
+        if (dispatchAction(button.dataset.action)) {
           return;
         }
         handleValidationAction(button.dataset.action, button.dataset.issueId);
@@ -1042,6 +1181,9 @@
       render();
     });
     on(btnFixAll, 'click', () => {
+      if (btnFixAll?.dataset?.action) {
+        return;
+      }
       const result = resolveAllAutomatically();
       if (result.errorCount > 0) {
         planStatusEl.textContent = `Quedan ${result.errorCount} errores que requieren tu decision.`;

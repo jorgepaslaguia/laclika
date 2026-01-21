@@ -92,8 +92,8 @@
                   <div class="alert-title">Alertas (<span id="alerts-count">0</span>)</div>
                   <div id="alerts-lines" class="note">Sin alertas.</div>
                   <div class="controls">
-                    <button id="alerts-review" class="btn ghost" type="button">Ver</button>
-                    <button id="alerts-dismiss" class="btn ghost" type="button" data-action="ignore-missing-resources">
+                    <button id="alerts-review" class="btn ghost" type="button" data-action="open-adv">Ver</button>
+                    <button id="alerts-dismiss" class="btn ghost" type="button" data-action="open-ops-resources">
                       Ignorar por ahora
                     </button>
                   </div>
@@ -102,7 +102,7 @@
                   <div class="alert-section">
                     <div class="label">Recursos faltantes</div>
                     <div id="alerts-missing" class="note">Sin recursos faltantes.</div>
-                    <button id="alerts-add-resources" class="btn ghost mini-btn" type="button" data-action="add-missing-resources">
+                    <button id="alerts-add-resources" class="btn ghost mini-btn" type="button" data-action="open-ops-resources">
                       Anadir recursos sugeridos
                     </button>
                   </div>
@@ -117,22 +117,39 @@
                 </div>
               </section>
 
-              <section class="section" id="config">
-                <div class="section-title">Recursos y equipo</div>
-                <div class="config-grid">
+              <section class="section panel hidden" id="opsPanel">
+                <div class="section-title">AJUSTES OPERATIVOS</div>
+                <div class="controls">
+                  <button class="btn ghost" type="button" data-action="open-ops-resources">Recursos</button>
+                  <button class="btn ghost" type="button" data-action="open-ops-team">Equipo</button>
+                  <button class="btn ghost" type="button" data-action="open-ops-assignments">Asignaciones</button>
+                </div>
+
+                <section id="opsResources" class="panel-section">
                   <div class="config-block">
                     <div class="label">Recursos</div>
                     <div id="resource-summary" class="note"></div>
                     <div id="resource-editor"></div>
                     <button id="add-resource" class="btn ghost mini-btn" type="button">+ Anadir recurso</button>
                   </div>
+                </section>
+
+                <section id="opsTeam" class="panel-section hidden">
                   <div class="config-block">
                     <div class="label">Equipo</div>
                     <div id="team-editor"></div>
                     <button id="add-person" class="btn ghost mini-btn" type="button">+ Anadir persona</button>
                   </div>
+                </section>
+
+                <section id="opsAssignments" class="panel-section hidden">
+                  <div class="note">Gestiona tareas y asignaciones en Ajustes avanzados.</div>
+                  <button class="btn ghost mini-btn" type="button" data-action="open-adv">Abrir ajustes avanzados</button>
+                </section>
+
+                <div class="controls">
+                  <button class="btn ghost" type="button" data-action="close-panels">Cerrar</button>
                 </div>
-                <div class="controls"></div>
               </section>
 
               <details id="settings-panel" class="settings-panel">
@@ -151,13 +168,13 @@
                     <div class="block-title">Acciones rapidas</div>
                     <div id="settings-actions" class="controls">
                       <button id="btn-fix-all" class="btn primary" type="button">Resolver todo</button>
-                      <button id="btn-assign-resources" class="btn ghost" type="button" data-action="add-missing-resources">
+                      <button id="btn-assign-resources" class="btn ghost" type="button" data-action="open-ops-resources">
                         Asignar recursos
                       </button>
-                      <button id="btn-autoassign-balanced" class="btn ghost" type="button" data-action="auto-assign-team">
+                      <button id="btn-autoassign-balanced" class="btn ghost" type="button" data-action="open-ops-assignments">
                         Autoasignar equipo
                       </button>
-                      <button id="btn-fill-durations" class="btn ghost" type="button" data-action="auto-assign-durations">
+                      <button id="btn-fill-durations" class="btn ghost" type="button" data-action="open-adv">
                         Autoduraciones
                       </button>
                     </div>
@@ -244,49 +261,56 @@
                   <div class="section-title">Que falta para empezar</div>
                   <div id="prep-issues-grid" class="issue-grid"></div>
                 </section>
-                <section class="section" id="review">
-                  <div class="section-title">Revisar tareas</div>
-                  <div class="table-meta">
-                    <div id="incomplete-count" class="note">Errores bloqueantes: 0 | Avisos: 0</div>
-                    <div id="normalized-count" class="note"></div>
-                    <label class="note">
-                      <input id="toggle-compact" type="checkbox" />
-                      Modo compacto
-                    </label>
+                <section class="section panel hidden" id="advPanel">
+                  <div class="section-title">AJUSTES AVANZADOS</div>
+                  <div class="controls">
+                    <button class="btn ghost" type="button" data-action="close-panels">Cerrar</button>
                   </div>
-                  <div class="filters">
-                    <select id="filter-plato"></select>
-                    <select id="filter-fase"></select>
-                    <label class="note">
-                      <input id="filter-errors" type="checkbox" />
-                      Mostrar todas
-                    </label>
-                    <label class="note">
-                      <input id="filter-no-duration" type="checkbox" />
-                      Sin duracion
-                    </label>
-                    <label class="note">
-                      <input id="filter-no-resource" type="checkbox" />
-                      Sin recurso requerido
-                    </label>
-                  </div>
-                  <div id="review-empty" class="review-empty ticket" hidden>
-                    <div class="ticket-header">No se generaron tareas</div>
-                    <div class="ticket-body">
-                      Revisa el texto del menu o ajusta el formato antes de interpretar.
+                  <section id="review">
+                    <div class="table-meta">
+                      <div id="incomplete-count" class="note">Errores bloqueantes: 0 | Avisos: 0</div>
+                      <div id="normalized-count" class="note"></div>
+                      <label class="note">
+                        <input id="toggle-compact" type="checkbox" />
+                        Modo compacto
+                      </label>
                     </div>
-                    <div class="controls">
-                      <button
-                        id="retry-interpret"
-                        class="btn primary"
-                        type="button"
-                        data-action="retry-interpret"
-                      >
-                        Reintentar interpretar
-                      </button>
+                    <div id="advFilters" class="filters">
+                      <select id="filter-plato"></select>
+                      <select id="filter-fase"></select>
+                      <label class="note">
+                        <input id="filter-errors" type="checkbox" />
+                        Mostrar todas
+                      </label>
+                      <label class="note">
+                        <input id="filter-no-duration" type="checkbox" />
+                        Sin duracion
+                      </label>
+                      <label class="note">
+                        <input id="filter-no-resource" type="checkbox" />
+                        Sin recurso requerido
+                      </label>
                     </div>
-                  </div>
-                  <div id="assignment-list" class="assign-grid"></div>
+                    <div id="review-empty" class="review-empty ticket" hidden>
+                      <div class="ticket-header">No se generaron tareas</div>
+                      <div class="ticket-body">
+                        Revisa el texto del menu o ajusta el formato antes de interpretar.
+                      </div>
+                      <div class="controls">
+                        <button
+                          id="retry-interpret"
+                          class="btn primary"
+                          type="button"
+                          data-action="retry-interpret"
+                        >
+                          Reintentar interpretar
+                        </button>
+                      </div>
+                    </div>
+                    <div id="advTasksTable">
+                      <div id="assignment-list" class="assign-grid"></div>
+                    </div>
+                  </section>
                 </section>
                 <section class="section" id="prep-context">
                   <div class="section-title">Contexto</div>
