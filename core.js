@@ -11,7 +11,7 @@ if (typeof window !== 'undefined') {
         window.__CORE_LOADED__ = true;
       }
       const LOW_CONFIDENCE = 0.6;
-      const BANNED_WORDS = ['menu', 'entrantes', 'principal', 'postre', 'equipo', 'cocina'];
+      const BANNED_WORDS = ['menu', 'entrantes', 'principal', 'postre', 'equipo', 'recursos', 'alergias', 'cocina'];
       const INGREDIENT_WORDS = [
         'azucar',
         'sal',
@@ -98,8 +98,8 @@ if (typeof window !== 'undefined') {
       const PROCESS_KEYWORDS = [
         { process: 'FREIR', regex: /(freir|fritura|frito|rebozar\s*y\s*freir|dorar en aceite)/i },
         { process: 'GRATINAR', regex: /(gratin|gratinado)/i },
-        { process: 'BANO_MARIA', regex: /(bano maria)/i },
-        { process: 'HORNEAR', regex: /(hornear|al horno|asar al horno|horno)/i },
+        { process: 'BANO_MARIA', regex: /(bano\s*maria)/i },
+        { process: 'HORNEAR', regex: /(hornear|al horno|horno|asar|asado|rostiz)/i },
         { process: 'SALTEAR', regex: /(saltear|confitar|plancha|sellar)/i },
         { process: 'SOFREIR', regex: /(sofreir|sofrito)/i },
         { process: 'REDUCIR', regex: /(reducir|reduccion|reducido)/i },
@@ -1647,6 +1647,7 @@ if (typeof window !== 'undefined') {
           expertMode: false,
           manualTextOpen: false,
           debugEnabled: false,
+          debugText: false,
           issues: [],
           diagnostics: emptyDiagnostics(),
           invariants: { errors: [], warnings: [] },
@@ -1682,6 +1683,20 @@ if (typeof window !== 'undefined') {
           return;
         }
         Object.assign(state, patch);
+      }
+
+      function debugLog(stage, payload) {
+        const enabled =
+          (typeof window !== 'undefined' && window.DEBUG_PARSER) ||
+          (typeof state === 'object' && state && state.debugText);
+        if (!enabled) {
+          return;
+        }
+        try {
+          console.debug(`[parser] ${stage}`, payload);
+        } catch (error) {
+          // ignore debug failures
+        }
       }
 
       function loadUserSettings() {
@@ -2168,6 +2183,10 @@ if (typeof window !== 'undefined') {
           source === 'explicit' ? 0.9 : source === 'default' ? 0.5 : 0.65
         );
         const evidence = normalizeEvidence(person.evidence || person.evidencia || person.meta?.evidence || []);
+        debugLog('menu-ir-lines', {
+          dishesCount: mergedPlatos.length,
+          dishesPreview: mergedPlatos.slice(0, 5).map((plato) => plato?.nombre || '')
+        });
         return {
           id,
           nombre: name,
@@ -2446,7 +2465,16 @@ if (typeof window !== 'undefined') {
 
       function setPlan(nextPlan, draft = null, summary = '', questions = []) {
         const planInput = nextPlan ?? EMPTY_PLAN;
+        const inputTasks = Array.isArray(planInput?.tareas || planInput?.tasks) ? (planInput.tareas || planInput.tasks).length : 0;
         plan = normalizePlan(planInput);
+        debugLog('normalize-plan', {
+          tareasCount: plan?.tareas?.length || 0,
+          recursosCount: plan?.recursos?.length || 0,
+          equipoCount: plan?.equipo?.length || 0
+        });
+        if (inputTasks > 0 && !(plan?.tareas || []).length) {
+          debugLog('normalize-plan-drop', { inputTasks, outputTasks: plan?.tareas?.length || 0 });
+        }
         if (draft !== undefined) {
           menuDraft = draft;
         }
@@ -3120,7 +3148,7 @@ function normalizeLine(line) {
           return [];
         }
         const forced = [];
-        if (/al horno|hornead/.test(normalized)) {
+        if (/al horno|hornead|horno/.test(normalized)) {
           forced.push('HORNEAR');
         }
         if (/asado|asar|rostiz/.test(normalized)) {
@@ -4176,7 +4204,9 @@ function normalizeLine(line) {
           confidenceAvg: 0,
           transforms: [],
           forcedDishesFromEnumeration: 0,
-          forcedEnumerationNames: []
+          forcedEnumerationNames: [],
+          fallbackLineDishes: 0,
+          fallbackLineNames: []
         };
         const { normalized, lines, baseLineCount, fallbackUsed } = normalizeLines(rawText, { diagnostics });
         const normalizedText = normalized;
@@ -4218,33 +4248,12 @@ function normalizeLine(line) {
           return normalizeProcessList(inferred.concat(tokens));
         };
 
-        blocks.forEach((block, index) => {
-          if (platos.length >= maxPlatos) {
-            if (!maxPlatosReached) {
-              diagnostics.warnings.push(`Max platos alcanzado (${maxPlatos}).`);
-              maxPlatosReached = true;
-            }
-            return;
-          }
-          const firstLine = block?.lines?.[0] || '';
-          const enumMatch = String(firstLine || '').match(ENUMERATION_STRONG_RE);
-          const enumeratedName = enumMatch ? String(enumMatch[2] || '').trim() : '';
-          if (enumMatch && isObviousDishHeader(enumeratedName)) {
-            return;
-          }
-          const parsed = parseDishBlock(block.lines, {
-            forceDish: Boolean(enumMatch),
-            nameOverride: enumeratedName
-          });
-          if (!parsed) {
-            diagnostics.errors.push(`Plato ${index + 1}: bloque no interpretable.`);
-            return;
-          }
+        const pushParsedDish = (parsed, blockLines) => {
           const rawProcesses = Array.isArray(parsed.procesos) ? parsed.procesos.slice() : [];
           let processes = rawProcesses.map((proc) => normalizeProcessKey(proc));
           processes = normalizeProcessList(processes);
           if (!processes.length) {
-            processes = inferProcessesFromLines(block.lines);
+            processes = inferProcessesFromLines(blockLines || []);
             diagnostics.inferredCount += processes.length;
           }
           const recursosHint = Array.isArray(parsed.recursos_hint)
@@ -4289,7 +4298,91 @@ function normalizeLine(line) {
               diagnostics.forcedEnumerationNames.push(parsed.nombre);
             }
           }
+          if (parsed.fallbackLine) {
+            diagnostics.fallbackLineDishes += 1;
+            if (diagnostics.fallbackLineNames.length < 10) {
+              diagnostics.fallbackLineNames.push(parsed.nombre);
+            }
+          }
+        };
+
+        blocks.forEach((block, index) => {
+          if (platos.length >= maxPlatos) {
+            if (!maxPlatosReached) {
+              diagnostics.warnings.push(`Max platos alcanzado (${maxPlatos}).`);
+              maxPlatosReached = true;
+            }
+            return;
+          }
+          const firstLine = block?.lines?.[0] || '';
+          const enumMatch = String(firstLine || '').match(ENUMERATION_STRONG_RE);
+          const enumeratedName = enumMatch ? String(enumMatch[2] || '').trim() : '';
+          if (enumMatch && isObviousDishHeader(enumeratedName)) {
+            return;
+          }
+          const parsed = parseDishBlock(block.lines, {
+            forceDish: Boolean(enumMatch),
+            nameOverride: enumeratedName
+          });
+          if (!parsed) {
+            diagnostics.errors.push(`Plato ${index + 1}: bloque no interpretable.`);
+            return;
+          }
+          pushParsedDish(parsed, block.lines);
         });
+
+        if (!platos.length) {
+          const fallbackHeader = /^\s*(menu|recursos?|equipo|alergias?|observaciones|notas?)\s*[:\-]?/i;
+          const fallbackIngredients = /^\s*(ingredientes?|ing\.?)\s*[:\-]/i;
+          const fallbackPax = /^\s*(pax|raciones|comensales)\b/i;
+          let stopAtIngredients = false;
+          (parseLines || []).forEach((line) => {
+            if (platos.length >= maxPlatos || stopAtIngredients) {
+              return;
+            }
+            const trimmed = String(line || '').trim();
+            if (!trimmed) {
+              return;
+            }
+            if (fallbackIngredients.test(trimmed)) {
+              stopAtIngredients = true;
+              return;
+            }
+            if (fallbackHeader.test(trimmed) || fallbackPax.test(trimmed)) {
+              return;
+            }
+            if (lineLooksLikeResource(trimmed) || lineLooksLikeTeam(trimmed)) {
+              return;
+            }
+            if (trimmed.includes(':') && PROCESS_VERB_REGEX.test(trimmed)) {
+              return;
+            }
+            let candidate = trimmed;
+            const sectionMatch = trimmed.match(/^(entrantes?|principal(?:es)?|postres?|platos?)\s*:\s*(.+)$/i);
+            if (sectionMatch) {
+              candidate = String(sectionMatch[2] || '').trim();
+            }
+            if (!candidate) {
+              return;
+            }
+            const parsed = parseDishBlock([candidate], {
+              forceDish: true,
+              nameOverride: candidate
+            });
+            if (!parsed) {
+              return;
+            }
+            parsed.forcedEnumeration = false;
+            parsed.fallbackLine = true;
+            pushParsedDish(parsed, [candidate]);
+          });
+          if (diagnostics.fallbackLineDishes) {
+            diagnostics.transforms.push({
+              label: 'fallback-line-dishes',
+              count: diagnostics.fallbackLineDishes
+            });
+          }
+        }
 
         const mergedPlatos = dedupeDishes(platos, {
           threshold: DISH_SIMILARITY_THRESHOLD
@@ -4585,6 +4678,9 @@ function normalizeLine(line) {
             mode = null;
             return;
           }
+          if (/^(menu|recursos|equipo|alergias)\b/i.test(token)) {
+            return;
+          }
           if (lineLooksLikeResource(trimmed) || lineLooksLikeTeam(trimmed)) {
             return;
           }
@@ -4689,8 +4785,50 @@ function normalizeLine(line) {
           }
         });
 
+        if (!dishes.length && Array.isArray(lines)) {
+          const fallbackHeader = /^\s*(menu|recursos?|equipo|alergias?|observaciones|notas?)\s*[:\-]?/i;
+          const fallbackIngredients = /^\s*(ingredientes?|ing\.?)\s*[:\-]/i;
+          const fallbackPax = /^\s*(pax|raciones|comensales)\b/i;
+          let stopAtIngredients = false;
+          lines.forEach((rawLine) => {
+            if (dishes.length >= maxPlatos || stopAtIngredients) {
+              return;
+            }
+            const trimmed = String(rawLine || '').trim();
+            if (!trimmed) {
+              return;
+            }
+            if (fallbackIngredients.test(trimmed)) {
+              stopAtIngredients = true;
+              return;
+            }
+            if (fallbackHeader.test(trimmed) || fallbackPax.test(trimmed)) {
+              return;
+            }
+            if (lineLooksLikeResource(trimmed) || lineLooksLikeTeam(trimmed)) {
+              return;
+            }
+            if (trimmed.includes(':') && PROCESS_VERB_REGEX.test(trimmed)) {
+              return;
+            }
+            let candidate = trimmed;
+            const sectionMatch = trimmed.match(/^(entrantes?|principal(?:es)?|postres?|platos?)\s*:\s*(.+)$/i);
+            if (sectionMatch) {
+              candidate = String(sectionMatch[2] || '').trim();
+            }
+            if (!candidate) {
+              return;
+            }
+            addDish(candidate, extractTimeRange(candidate), 'PDF', candidate, { forceDish: true });
+          });
+        }
+
         const mergedDishes = dedupeDishes(dishes, {
           threshold: DISH_SIMILARITY_THRESHOLD
+        });
+        debugLog('menu-draft-lines', {
+          dishesCount: mergedDishes.length,
+          dishesPreview: mergedDishes.slice(0, 5).map((plato) => plato?.nombre || '')
         });
         return {
           rawText: text,
@@ -4991,7 +5129,7 @@ function normalizeLine(line) {
         if (/(plancha|saltear|saltead|sofreir)/.test(normalized)) {
           return 'SALTEAR';
         }
-        if (/(horno|asado|hornead|gratin)/.test(normalized)) {
+        if (/(horno|asar|asado|hornead|gratin|rostiz)/.test(normalized)) {
           return 'HORNEAR';
         }
         if (/(hervir|cocer|pochar|guisar|estofar)/.test(normalized)) {
@@ -6075,14 +6213,107 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           }
 
           const durationInferred = !dish.tiempo;
-          if (durationInferred) {
-            tasks.forEach((task) => {
-              task.duracion_inferida = true;
-              task.confianza = Math.min(task.confianza, 0.55);
-            });
-          }
-          return { tasks, questions, guidedQuestions, uncertainties, estilos };
+        if (durationInferred) {
+          tasks.forEach((task) => {
+            task.duracion_inferida = true;
+            task.confianza = Math.min(task.confianza, 0.55);
+          });
         }
+        return { tasks, questions, guidedQuestions, uncertainties, estilos };
+      }
+
+      function buildFallbackTasksForDish(dish, index, resources, suggestions) {
+        const dishName = dish?.nombre || `Plato ${index + 1}`;
+        const slug = `d${index + 1}-fb`;
+        const baseTime = Math.max(1, computeBaseTime(dish || {}));
+        const origin = 'FALLBACK';
+        const level = inferLevelForDish(dishName);
+        const tasks = [];
+        const normalized = normalizeToken(dishName);
+        const dishResourceHints = Array.isArray(dish?.recursos_hint) ? dish.recursos_hint : [];
+
+        const clampDuration = (process, min, max) => {
+          const estimate = estimateDuration(process, baseTime, dishName);
+          const bounded = clampDurationForProcess(process, estimate, dishName);
+          return clamp(Math.round(bounded), min, max);
+        };
+
+        const addTask = (id, name, process, duration, deps) => {
+          const phase = defaultPhaseForProcess(process);
+          const resourceInfo = resourceForProcess(
+            process,
+            resources,
+            suggestions,
+            [],
+            id,
+            dishName,
+            dishResourceHints
+          );
+          const resourceIdValue = resourceInfo?.resourceId || null;
+          const task = buildTask(
+            id,
+            dishName,
+            withInferTag(name, true),
+            phase,
+            duration,
+            process,
+            resourceIdValue,
+            level,
+            deps,
+            origin,
+            0.35,
+            resourceInfo
+          );
+          task.duracion_inferida = true;
+          task.fallback = true;
+          tasks.push(task);
+        };
+
+        if (/(ensalada|gazpacho|carpaccio|tartar|fruta|crudite)/.test(normalized)) {
+          const washId = `${slug}-lavar`;
+          const cutId = `${slug}-cortar`;
+          const mixId = `${slug}-mezclar`;
+          const serveId = `${slug}-emplatar`;
+          addTask(washId, `lavar ${dishName}`, 'LAVAR', clampDuration('LAVAR', 3, 8), []);
+          addTask(cutId, `cortar ${dishName}`, 'CORTAR', clampDuration('CORTAR', 4, 10), [washId]);
+          addTask(mixId, `mezclar ${dishName}`, 'MEZCLAR', clampDuration('MEZCLAR', 4, 10), [cutId]);
+          addTask(serveId, `emplatar ${dishName}`, 'EMPLATAR', clampDuration('EMPLATAR', 3, 8), [mixId]);
+          return { tasks };
+        }
+
+        if (/(pollo|costillar|entrecot|asado|horno|al horno)/.test(normalized)) {
+          const preheatId = `${slug}-precalentar`;
+          const bakeId = `${slug}-hornear`;
+          const restId = `${slug}-reposar`;
+          const serveId = `${slug}-emplatar`;
+          addTask(preheatId, `precalentar horno para ${dishName}`, 'HORNEAR', clampDuration('HORNEAR', 8, 15), []);
+          addTask(bakeId, `hornear ${dishName}`, 'HORNEAR', clampDuration('HORNEAR', 20, 60), [preheatId]);
+          addTask(restId, `reposar ${dishName}`, 'REPOSAR', clampDuration('REPOSAR', 6, 15), [bakeId]);
+          addTask(serveId, `emplatar ${dishName}`, 'EMPLATAR', clampDuration('EMPLATAR', 4, 8), [restId]);
+          return { tasks };
+        }
+
+        if (/(flan|bizcocho|tarta|postre)/.test(normalized)) {
+          const mixId = `${slug}-mezclar`;
+          const cookId = `${slug}-cocer`;
+          const coolId = `${slug}-enfriar`;
+          const serveId = `${slug}-emplatar`;
+          const cookProcess = /flan/.test(normalized) ? 'BANO_MARIA' : 'HORNEAR';
+          addTask(mixId, `mezclar ${dishName}`, 'MEZCLAR', clampDuration('MEZCLAR', 6, 12), []);
+          addTask(cookId, `${processToVerb(cookProcess, dishName)} ${dishName}`, cookProcess, clampDuration(cookProcess, 15, 60), [mixId]);
+          addTask(coolId, `enfriar ${dishName}`, 'ENFRIAR', clampDuration('ENFRIAR', 8, 20), [cookId]);
+          addTask(serveId, `emplatar ${dishName}`, 'EMPLATAR', clampDuration('EMPLATAR', 4, 8), [coolId]);
+          return { tasks };
+        }
+
+        const washId = `${slug}-lavar`;
+        const cutId = `${slug}-cortar`;
+        const serveId = `${slug}-emplatar`;
+        addTask(washId, `lavar ingredientes de ${dishName}`, 'LAVAR', clampDuration('LAVAR', 3, 8), []);
+        addTask(cutId, `cortar ingredientes de ${dishName}`, 'CORTAR', clampDuration('CORTAR', 4, 10), [washId]);
+        addTask(serveId, `emplatar ${dishName}`, 'EMPLATAR', clampDuration('EMPLATAR', 4, 8), [cutId]);
+        return { tasks };
+      }
 
       function prioritizeQuestions(questions) {
         if (!Array.isArray(questions)) {
@@ -6194,10 +6425,26 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             });
           }
         });
+        if (!tasks.length && Array.isArray(draft.platos) && draft.platos.length) {
+          draft.platos.forEach((dish, index) => {
+            const fallback = buildFallbackTasksForDish(dish, index, resources, resourceWarnings);
+            if (fallback?.tasks?.length) {
+              tasks.push(...fallback.tasks);
+            }
+          });
+          uncertainties.push('Fallback aplicado: tareas base por plato.');
+        }
         if (state && state.debugEnabled) {
           console.debug('[buildPlanFromDraft] total tasks', tasks.length);
         }
-
+        debugLog('draft-tasks', {
+          tasksDraftCount: tasks.length,
+          sampleActions: tasks.slice(0, 5).map((task) => ({
+            plato: task.plato || '',
+            proceso: task.proceso || '',
+            nombre: task.nombre || ''
+          }))
+        });
 
         const uniqueUncertainties = Array.from(new Set(uncertainties)).slice(0, 5);
         const explicitTeam = draft.equipo && draft.equipo.length ? deepClone(draft.equipo) : [];
@@ -6555,6 +6802,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         }
         function updateDebugText() {
           const show = debugToggleEl.checked;
+          state.debugText = show;
           debugPanelEl.classList.toggle('show', show);
           if (!show) {
             debugTextEl.value = '';
@@ -6689,7 +6937,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             addIssue(errors, 'error', `Nombre invalido (metadata) en tarea: ${taskName}.`, 'task', task.id, 'titleFull');
           }
           if (sanitizeNumber(task.durationMin ?? task.duracion_min, 0) <= 0) {
-            addIssue(errors, 'error', `Duracion invalida en tarea: ${taskName}.`, 'task', task.id, 'durationMin');
+            addIssue(warnings, 'warning', `Duracion invalida en tarea: ${taskName}.`, 'task', task.id, 'durationMin');
           }
           const assignedId = task.resourceId || task.recurso_id || null;
           const assignedTypeKey = normalizeResourceName(task.resourceTypeKey || assignedId || '');
@@ -6699,8 +6947,8 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
               (assignedTypeKey && resourceTypeKeys.has(assignedTypeKey));
             if (!hasResource) {
               addIssue(
-                errors,
-                'error',
+                warnings,
+                'warning',
                 `Recurso desconocido en tarea: ${taskName}.`,
                 'task',
                 task.id,
@@ -6936,6 +7184,11 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             state.approved = false;
             state.planReady = false;
           }
+          debugLog('validate', {
+            blockingErrors: (state.issues || []).filter((issue) => issue.severity === 'error').length,
+            warningsCount: (state.issues || []).filter((issue) => issue.severity === 'warning').length,
+            tareasCountFinal: plan?.tareas?.length || 0
+          });
           saveLastPlan();
         }
 
@@ -6981,10 +7234,11 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         }
         return { text: fullText.trim(), error: null };
       }
-            function processMenuText(text) {
+      function processMenuText(text) {
         const normalizedText = normalizeText(text);
         const normalizedForMatch = normalizeToken(normalizedText);
         const { lines, baseLineCount, fallbackUsed } = normalizeLines(normalizedText);
+        debugLog('normalize-lines', { linesCount: lines.length, baseLineCount, fallbackUsed });
         const cleanedLines = stripRepeatedHeaders(lines);
         const sectionItems = cleanedLines.map((line) => ({
           text: line,
@@ -7006,6 +7260,12 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           if (state.debugEnabled && menuIR) {
             console.debug('[menuIR] platos', menuIR.platos?.length || 0, menuIR.parseDiagnostics || {});
           }
+          if (menuIR) {
+            debugLog('menu-ir', {
+              dishesCount: menuIR.platos?.length || 0,
+              dishesPreview: (menuIR.platos || []).slice(0, 5).map((plato) => plato?.nombre || '')
+            });
+          }
         } catch (error) {
           if (state.debugEnabled) {
             console.warn('[processMenuText] Error buildMenuIRFromRawText', error);
@@ -7013,6 +7273,12 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           appState.menuIR = null;
         }
 
+        if (menuIR) {
+          if (!menuIR.platos || !menuIR.platos.length) {
+            debugLog('menu-ir-empty', { reason: 'no-dishes' });
+            menuIR = null;
+          }
+        }
         if (menuIR) {
           try {
             const built = menuIRToPlan(menuIR, plan?.recursos || [], plan?.equipo || []);
@@ -7037,6 +7303,12 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
                 ingredientes: Array.isArray(plato?.ingredientes) ? plato.ingredientes.length : 0
               }));
               console.debug('[processMenuText] platos', draft.platos.length, sample);
+            }
+            if (draft && Array.isArray(draft.platos)) {
+              debugLog('menu-draft', {
+                dishesCount: draft.platos.length,
+                dishesPreview: draft.platos.slice(0, 5).map((plato) => plato?.nombre || '')
+              });
             }
           } catch (error) {
             if (state.debugEnabled) {
@@ -7100,6 +7372,10 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
 
         const minTasks = Array.isArray(draft.platos) ? draft.platos.length * 3 : 0;
         const totalTasks = result.plan?.tareas?.length || 0;
+        debugLog('before-set-plan', {
+          dishesCount: draft?.platos?.length || 0,
+          tareasCount: totalTasks
+        });
         if (minTasks > 0 && totalTasks < minTasks) {
           const warning = `Tareas insuficientes: ${totalTasks} para ${draft.platos.length} platos.`;
           result.plan.incertidumbres_detectadas = Array.from(
@@ -7126,7 +7402,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           )
             ? 'Menu interpretado (tareas insuficientes).'
             : 'Menu interpretado.'
-          : 'Menu interpretado (sin platos detectados).';
+          : 'No se detectaron platos.';
         setPlan(result.plan, draft, summary, result.plan.preguntas_rapidas);
 
         try {
@@ -7243,6 +7519,16 @@ async function handlePdfFile(file) {
         if (!text) {
           return;
         }
+        const preview = text
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .slice(0, 2);
+        debugLog('manual-interpret', { length: text.length, preview });
+        const manualCount = document.querySelectorAll('#menuTextArea').length;
+        if (manualCount > 1) {
+          debugLog('manual-duplicate-textarea', { count: manualCount });
+        }
         pdfState.text = text;
         appState.menuRawText = text;
         appState.menuRawTextSource = { type: 'manual', name: pdfState.name || null };
@@ -7314,7 +7600,7 @@ async function handlePdfFile(file) {
           }
           const person = planToCheck.equipo.find((item) => item.id === task.asignado_a_id);
           if (!person) {
-            errors.push(`Persona asignada no existe: ${task.nombre}.`);
+            warnings.push(`Persona asignada no existe: ${task.nombre}.`);
             return;
           }
           if (!isAssignmentAllowed(task, person)) {
@@ -8504,7 +8790,7 @@ async function handlePdfFile(file) {
             if (!Number.isFinite(durationValue) || durationValue <= 0) {
               addIssue({
                 id: `TASK_DURATION_${task.id}`,
-                severity: 'error',
+                severity: 'warning',
                 code: 'TASK_DURATION_MISSING',
                 messageHumano: `Duracion invalida en tarea: ${taskName}.`,
                 entityType: 'task',
@@ -8519,7 +8805,7 @@ async function handlePdfFile(file) {
                 expected.resourceId && resourceIds.has(expected.resourceId)
                   ? { label: 'Asignar recurso', action: 'SET_RESOURCE', resourceId: expected.resourceId }
                   : null;
-              const severity = 'error';
+              const severity = 'warning';
               addIssue({
                 id: `TASK_RESOURCE_REQUIRED_${task.id}`,
                 severity,
@@ -8554,7 +8840,7 @@ async function handlePdfFile(file) {
             if ((assignedId || assignedTypeKey) && !hasResource) {
               addIssue({
                 id: `TASK_RESOURCE_INVALID_${task.id}`,
-                severity: 'error',
+                severity: 'warning',
                 code: 'TASK_RESOURCE_INVALID',
                 messageHumano: `Recurso desconocido en tarea: ${taskName}.`,
                 entityType: 'task',
@@ -8576,7 +8862,7 @@ async function handlePdfFile(file) {
             } else if (!personIds.has(task.asignado_a_id)) {
               addIssue({
                 id: `TASK_ASSIGN_MISSING_${task.id}`,
-                severity: 'error',
+                severity: 'warning',
                 code: 'TASK_ASSIGN_MISSING_PERSON',
                 messageHumano: `Persona asignada no existe en: ${taskName}.`,
                 entityType: 'task',
@@ -8602,7 +8888,7 @@ async function handlePdfFile(file) {
             if (task.locked && !task.asignado_a_id) {
               addIssue({
                 id: `TASK_LOCKED_${task.id}`,
-                severity: 'error',
+                severity: 'warning',
                 code: 'TASK_LOCKED_NO_ASSIGN',
                 messageHumano: `Tarea bloqueada sin asignado: ${taskName}.`,
                 entityType: 'task',
@@ -8899,7 +9185,7 @@ async function handlePdfFile(file) {
             severity: 'warn',
             title: 'Tareas sin asignar',
             meta: `${diagnostics.unassignedTasks} tareas`,
-            action: 'distribute-tasks',
+            action: 'auto-assign-tasks',
             label: 'Repartir tareas'
           });
         }
@@ -8908,7 +9194,7 @@ async function handlePdfFile(file) {
             severity: 'warn',
             title: 'Recursos faltantes',
             meta: diagnostics.missingResources.join(', '),
-            action: 'assign-missing-resources',
+            action: 'auto-assign-resources',
             label: 'Asignar recursos'
           });
         }

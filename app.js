@@ -236,6 +236,7 @@
 
   const warnDuplicateIds = () => {
     const byId = new Map();
+    const planStatusEl = document.getElementById('plan-status');
     document.querySelectorAll('[id]').forEach((el) => {
       const id = el.id;
       if (!id) {
@@ -252,9 +253,15 @@
     });
     if (document.querySelectorAll('#pdfDropZone').length > 1) {
       console.warn('Duplicado detectado: #pdfDropZone debe existir una sola vez.');
+      if (planStatusEl) {
+        planStatusEl.textContent = 'Warning: #pdfDropZone duplicado. Debe existir una sola vez.';
+      }
     }
     if (document.querySelectorAll('#pdfInput').length > 1) {
       console.warn('Duplicado detectado: #pdfInput debe existir una sola vez.');
+      if (planStatusEl) {
+        planStatusEl.textContent = 'Warning: #pdfInput duplicado. Debe existir una sola vez.';
+      }
     }
   };
 
@@ -454,6 +461,11 @@
     };
 
     const runRetryInterpret = () => {
+      const manualValue = manualTextEl ? String(manualTextEl.value || '').trim() : '';
+      if (manualValue) {
+        processMenuText(manualValue);
+        return;
+      }
       const lastText = typeof appState === 'object' ? String(appState.menuRawText || '').trim() : '';
       if (lastText) {
         processMenuText(lastText);
@@ -462,6 +474,9 @@
       if (typeof handleManualText === 'function') {
         handleManualText();
         return;
+      }
+      if (planStatusEl) {
+        planStatusEl.textContent = 'No hay texto para interpretar. Pega un menu o carga un PDF.';
       }
       if (typeof navigateTo === 'function') {
         navigateTo('prep');
@@ -628,11 +643,11 @@
           return;
         }
         try {
-          if (action === 'distribute-tasks') {
+          if (action === 'auto-assign-tasks' || action === 'distribute-tasks') {
             handleValidationAction('validation-assign');
             return;
           }
-          if (action === 'assign-missing-resources') {
+          if (action === 'auto-assign-resources' || action === 'assign-missing-resources') {
             handleValidationAction('validation-add-resources');
             return;
           }

@@ -26,6 +26,8 @@
         const phases = new Set((planBuilt?.tareas || []).map((task) => task.fase));
         const tasksByDish = {};
         const processesByDish = {};
+        const processSet = new Set();
+        let fallbackCount = 0;
         (planBuilt?.tareas || []).forEach((task) => {
           const dish = task.plato || task.dish || 'Plato';
           if (!tasksByDish[dish]) {
@@ -37,6 +39,10 @@
           }
           if (task.proceso) {
             processesByDish[dish].add(task.proceso);
+            processSet.add(task.proceso);
+          }
+          if ((task.origin || task.origen) === 'FALLBACK') {
+            fallbackCount += 1;
           }
         });
         const taskCounts = Object.values(tasksByDish);
@@ -49,11 +55,13 @@
         let infos = null;
         let warningsAfter = null;
         let infosAfter = null;
+        let normalizedTaskCount = null;
         if (window.setPlan && window.state) {
           const snapshot = window.plan ? JSON.parse(JSON.stringify(window.plan)) : window.EMPTY_PLAN || null;
           window.setPlan(planBuilt, null, '', []);
           warnings = (window.state.issues || []).filter((issue) => issue.severity === 'warning').length;
           infos = (window.state.issues || []).filter((issue) => issue.severity === 'info').length;
+          normalizedTaskCount = window.plan?.tareas?.length ?? null;
           if ((planBuilt?.tareas || []).length) {
             if (typeof window.assignResourcesByHeuristic === 'function') {
               window.assignResourcesByHeuristic({ silent: true });
@@ -76,8 +84,16 @@
         }
         const expect = fixture.expect || {};
         const platesOk = plateCount >= (expect.platesMin || 1);
-        const tasksOk = taskCount >= (expect.tasksMin || 1);
+        const tasksMin = Number.isFinite(expect.tasksMin) ? expect.tasksMin : 1;
+        const tasksOk = plateCount === 0 ? true : taskCount >= tasksMin;
+        const nonZeroOk = plateCount === 0 ? true : taskCount > 0;
         const phasesOk = phases.size >= (expect.phasesMin || 1);
+        const normalizedOk =
+          normalizedTaskCount === null
+            ? true
+            : plateCount === 0
+              ? true
+              : normalizedTaskCount > 0;
         const warningMax = Number.isFinite(expect.warningsMax) ? expect.warningsMax : 4;
         const warningAfterMax = Number.isFinite(expect.warningsAfterMax) ? expect.warningsAfterMax : 1;
         const warningsOk = warnings === null ? true : warnings <= warningMax;
@@ -88,17 +104,20 @@
           teamMin === null && teamMax === null
             ? true
             : (teamMin === null || teamCount >= teamMin) && (teamMax === null || teamCount <= teamMax);
-        ok = platesOk && tasksOk && phasesOk && warningsOk && warningsAfterOk && teamOk;
+        const processIncludes = Array.isArray(expect.processIncludes) ? expect.processIncludes : [];
+        const processOk = processIncludes.every((proc) => processSet.has(proc));
+        ok = platesOk && tasksOk && nonZeroOk && phasesOk && warningsOk && warningsAfterOk && teamOk && processOk && normalizedOk;
         const warnLabel =
           warnings === null
             ? 'warnings n/a'
-            : `warnings ${warnings}→${warningsAfter ?? warnings}`;
-        const infoLabel = infos === null ? 'infos n/a' : `infos ${infos}→${infosAfter ?? infos}`;
+            : `warnings ${warnings}->${warningsAfter ?? warnings}`;
+        const infoLabel = infos === null ? 'infos n/a' : `infos ${infos}->${infosAfter ?? infos}`;
         detail =
           `platos ${plateCount} tareas ${taskCount} equipo ${teamCount} fases ${phases.size} ` +
-          `tareas/plato ${tasksPerDishMin}-${tasksPerDishMax} ` +
+          `tareas/plato ${tasksPerDishMin}-${tasksPerDishMax} fallback ${fallbackCount} ` +
           `procesos/plato ${procPerDishMin}-${procPerDishMax} ` +
-          `${warnLabel} ${infoLabel}`;
+          `${warnLabel} ${infoLabel}` +
+          (normalizedTaskCount === null ? '' : ` norm ${normalizedTaskCount}`);
       } catch (error) {
         ok = false;
         detail = error && error.message ? error.message : 'error';
