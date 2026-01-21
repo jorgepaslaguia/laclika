@@ -155,11 +155,11 @@ if (typeof window !== 'undefined') {
         COCER: ['FOGONES'],
         HORNEAR: ['HORNO'],
         GRATINAR: ['HORNO'],
-        BANO_MARIA: ['HORNO'],
+        BANO_MARIA: ['FOGONES'],
         EMPLATAR: ['ESTACION'],
         LIMPIAR: ['LAVAVAJILLAS', 'FREGADERO'],
-        REPOSAR: [null],
-        ENFRIAR: [null],
+        REPOSAR: ['ESTACION'],
+        ENFRIAR: ['ESTACION'],
         TRITURAR: ['ESTACION'],
         OTRO: [null]
       };
@@ -181,13 +181,13 @@ if (typeof window !== 'undefined') {
         HORNEAR: { phase: 'PREELABORACION', baseMin: 35, resourceKey: 'HORNO' },
         ASAR: { phase: 'PREELABORACION', baseMin: 45, resourceKey: 'HORNO' },
         GRATINAR: { phase: 'PREELABORACION', baseMin: 18, resourceKey: 'HORNO' },
-        BANO_MARIA: { phase: 'PREELABORACION', baseMin: 35, resourceKey: 'HORNO' },
+        BANO_MARIA: { phase: 'PREELABORACION', baseMin: 35, resourceKey: 'FOGONES' },
         EMPLATAR: { phase: 'SERVICIO', baseMin: 6, resourceKey: 'ESTACION' },
         DECORAR: { phase: 'SERVICIO', baseMin: 6, resourceKey: 'ESTACION' },
         TERMINAR: { phase: 'SERVICIO', baseMin: 6, resourceKey: 'ESTACION' },
         LIMPIAR: { phase: 'MISE_EN_PLACE', baseMin: 5, resourceKey: 'FREGADERO' },
-        REPOSAR: { phase: 'PREELABORACION', baseMin: 8, resourceKey: null },
-        ENFRIAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: null }
+        REPOSAR: { phase: 'PREELABORACION', baseMin: 8, resourceKey: 'ESTACION' },
+        ENFRIAR: { phase: 'PREELABORACION', baseMin: 10, resourceKey: 'ESTACION' }
       };
 
       const RESOURCE_HINTS = {
@@ -195,12 +195,17 @@ if (typeof window !== 'undefined') {
         hornos: 'HORNO',
         fogon: 'FOGONES',
         fogones: 'FOGONES',
+        fuego: 'FOGONES',
+        cazuela: 'FOGONES',
+        cacerola: 'FOGONES',
+        olla: 'FOGONES',
         sarten: 'FOGONES',
         plancha: 'FOGONES',
-        olla: 'FOGONES',
         estacion: 'ESTACION',
         mesa: 'ESTACION',
         tabla: 'ESTACION',
+        cuchillo: 'ESTACION',
+        encimera: 'ESTACION',
         fregadero: 'FREGADERO',
         pila: 'FREGADERO',
         lavavajillas: 'LAVAVAJILLAS'
@@ -1385,9 +1390,21 @@ if (typeof window !== 'undefined') {
 
       const RESOURCE_CATALOG = [
         { id: 'HORNO', nombre: 'Horno', tipo: 'COCCION', pattern: 'horno(?:s)?', defaultCap: 1 },
-        { id: 'FOGONES', nombre: 'Fogones', tipo: 'COCCION', pattern: 'fogones?|fogon(?:es)?', defaultCap: 3 },
-        { id: 'ESTACION', nombre: 'Estacion', tipo: 'PREP', pattern: 'estacion(?:es)?', defaultCap: 1 },
-        { id: 'FREGADERO', nombre: 'Fregadero', tipo: 'LIMPIEZA', pattern: 'fregadero(?:s)?', defaultCap: 1 },
+        {
+          id: 'FOGONES',
+          nombre: 'Fogones',
+          tipo: 'COCCION',
+          pattern: 'fogones?|fogon(?:es)?|fuego|hornillo(?:s)?|cazuela(?:s)?|cacerola(?:s)?|olla(?:s)?|sarten(?:es)?|plancha',
+          defaultCap: 3
+        },
+        {
+          id: 'ESTACION',
+          nombre: 'Estacion',
+          tipo: 'PREP',
+          pattern: 'estacion(?:es)?|mesa(?:s)?|tabla(?:s)?|cuchillo(?:s)?|encimera',
+          defaultCap: 1
+        },
+        { id: 'FREGADERO', nombre: 'Fregadero', tipo: 'LIMPIEZA', pattern: 'fregadero(?:s)?|pila(?:s)?|lavadero', defaultCap: 1 },
         { id: 'LAVAVAJILLAS', nombre: 'Lavavajillas', tipo: 'LIMPIEZA', pattern: 'lavavajillas', defaultCap: 1 }
       ];
 
@@ -1642,6 +1659,8 @@ if (typeof window !== 'undefined') {
           phaseEstimate: 0,
           alertsOpen: false,
           issuesOpen: false,
+          // User can ignore missing resources for the current plan.
+          ignoreMissingResources: false,
           compactMode: false,
           uiMode: 'library',
           advancedOpen: false,
@@ -1898,6 +1917,7 @@ if (typeof window !== 'undefined') {
             counts: { warnings: 0, errors: 0, fixes: 0, assumptions: 0 },
             byDishSummary: [],
             missingResources: [],
+            missingResourceTypeKeys: [],
             missingDurations: 0,
             unassignedTasks: 0
           };
@@ -2094,13 +2114,13 @@ if (typeof window !== 'undefined') {
         if (/(horno)/.test(normalized)) {
           return 'HORNO';
         }
-        if (/(fogon|fogones|cocina|hornillo)/.test(normalized)) {
+        if (/(fogon|fogones|cocina|hornillo|fuego|cazuela|cacerola|olla|sarten|plancha)/.test(normalized)) {
           return 'FOGONES';
         }
-        if (/(estacion|mesa|tabla|preparad)/.test(normalized)) {
+        if (/(estacion|mesa|tabla|preparad|cuchillo|encimera)/.test(normalized)) {
           return 'ESTACION';
         }
-        if (/(fregadero|pila)/.test(normalized)) {
+        if (/(fregadero|pila|lavadero)/.test(normalized)) {
           return 'FREGADERO';
         }
         if (/(lavavajillas)/.test(normalized)) {
@@ -2499,6 +2519,9 @@ if (typeof window !== 'undefined') {
         if (summary) {
           state.lastPlanMessage = summary;
           setText(planStatusEl, summary);
+        }
+        if (!options.keepIgnoreMissingResources) {
+          state.ignoreMissingResources = false;
         }
         if (Array.isArray(questions) && questions.length) {
           plan.preguntas_rapidas = questions;
@@ -3032,6 +3055,31 @@ function normalizeLine(line) {
         return line.replace(/^[\-\*\d\.\)\u2022]+\s*/, '').replace(/\s+/g, ' ').trim();
       }
 
+      function splitInlineSectionDish(line) {
+        const trimmed = String(line || '').trim();
+        if (!trimmed) {
+          return null;
+        }
+        const match = trimmed.match(/^([^:]+):\s*(.+)$/);
+        if (!match) {
+          return null;
+        }
+        const section = match[1].trim();
+        const dish = match[2].trim();
+        if (!section || !dish) {
+          return null;
+        }
+        const sectionKey = normalizeToken(section);
+        if (
+          /^(menu|recursos?|equipo|alergias?|ingredientes?|procesos?|observaciones?|notas?|pax|raciones|comensales)$/.test(
+            sectionKey
+          )
+        ) {
+          return null;
+        }
+        return { section, dish };
+      }
+
       function lineLooksLikeResource(line) {
         const raw = String(line || '');
         const normalized = normalizeToken(raw);
@@ -3317,7 +3365,7 @@ function normalizeLine(line) {
             typeKey = 'FREGADERO';
           } else if (/cortar|picar|pelar/.test(normalized)) {
             typeKey = 'ESTACION';
-          } else if (/mezclar|montar|emplatar/.test(normalized)) {
+          } else if (/mezclar|montar|emplatar|reposar|enfriar/.test(normalized)) {
             typeKey = 'ESTACION';
           } else if (/cocer|saltear|freir|sofreir|reducir|hervir|guisar|cocinar/.test(normalized)) {
             typeKey = 'FOGONES';
@@ -4275,6 +4323,9 @@ function normalizeLine(line) {
         const platos = [];
         const maxPlatos = computeMaxPlatos(lines.length, baseLineCount);
         let maxPlatosReached = false;
+        let currentSection = null;
+        const normalizeSection = (value) => String(value || '').trim().toUpperCase();
+        const sectionHeaderOnlyRe = /^(entrantes?|principal(?:es)?|postres?|platos?|primeros?|segundos?)\s*[:\-\u2013\u2014]*$/i;
 
         const inferProcessesFromLines = (blockLines) => {
           const joined = blockLines.join(' ');
@@ -4397,6 +4448,26 @@ function normalizeLine(line) {
               stopAtIngredients = true;
               return;
             }
+            const inlineSection = splitInlineSectionDish(trimmed);
+            if (inlineSection) {
+              currentSection = normalizeSection(inlineSection.section);
+              const rest = inlineSection.dish;
+              const parsedInline = parseDishBlock([rest], {
+                forceDish: true,
+                nameOverride: rest
+              });
+              if (!parsedInline) {
+                return;
+              }
+              parsedInline.forcedEnumeration = false;
+              parsedInline.fallbackLine = true;
+              if (currentSection) {
+                parsedInline.categoria = parsedInline.categoria || currentSection;
+                parsedInline.section = parsedInline.section || currentSection;
+              }
+              pushParsedDish(parsedInline, [rest]);
+              return;
+            }
             if (fallbackHeader.test(trimmed) || fallbackPax.test(trimmed)) {
               return;
             }
@@ -4406,9 +4477,15 @@ function normalizeLine(line) {
             if (trimmed.includes(':') && PROCESS_VERB_REGEX.test(trimmed)) {
               return;
             }
+            const headerMatch = trimmed.match(sectionHeaderOnlyRe);
+            if (headerMatch) {
+              currentSection = normalizeSection(headerMatch[1]);
+              return;
+            }
             let candidate = trimmed;
             const sectionMatch = trimmed.match(/^(entrantes?|principal(?:es)?|postres?|platos?)\s*:\s*(.+)$/i);
             if (sectionMatch) {
+              currentSection = normalizeSection(sectionMatch[1]);
               candidate = String(sectionMatch[2] || '').trim();
             }
             if (!candidate) {
@@ -4423,6 +4500,10 @@ function normalizeLine(line) {
             }
             parsed.forcedEnumeration = false;
             parsed.fallbackLine = true;
+            if (currentSection) {
+              parsed.categoria = parsed.categoria || currentSection;
+              parsed.section = parsed.section || currentSection;
+            }
             pushParsedDish(parsed, [candidate]);
           });
           if (diagnostics.fallbackLineDishes) {
@@ -4662,11 +4743,52 @@ function normalizeLine(line) {
         const dishes = [];
         const comensales = detectComensales(normalizedForMatch);
         const fecha = detectDate(normalized);
-        const equipo = parseTeamFromLines(lines);
-        const maxPlatos = computeMaxPlatos(lines.length, baseLineCount);
-        let currentCategory = null;
-        let currentDish = null;
-        let mode = null;
+          const equipo = parseTeamFromLines(lines);
+          const maxPlatos = computeMaxPlatos(lines.length, baseLineCount);
+          let currentSection = null;
+          let currentDish = null;
+          let mode = null;
+          const normalizeSection = (value) => String(value || '').trim().toUpperCase();
+          const isSectionHeaderLine = (raw) => {
+            const trimmed = String(raw || '').trim();
+            if (!trimmed) {
+              return false;
+            }
+            if (trimmed.includes(':')) {
+              const rest = trimmed.split(':').slice(1).join(':').trim();
+              if (rest) {
+                return false;
+              }
+            }
+            const endsWithMarker = /[:\-\u2013\u2014]\s*$/.test(trimmed);
+            const clean = trimmed.replace(/[:\-\u2013\u2014]+$/, '').trim();
+            if (!clean || clean.length > 40) {
+              return false;
+            }
+            const headerToken = /^(entrantes?|principal(?:es)?|postres?|platos?|primeros?|segundos?)$/i.test(clean);
+            if (!endsWithMarker && !headerToken) {
+              return false;
+            }
+            if (/\d/.test(clean)) {
+              return false;
+            }
+            if (PROCESS_VERB_REGEX.test(normalizeToken(clean))) {
+              return false;
+            }
+            const words = clean.split(/\s+/).filter(Boolean);
+            if (!words.length) {
+              return false;
+            }
+            const isUpper = isUppercaseLine(clean);
+            const isTitle = words.every((word) => {
+              const plain = stripDiacritics(word).replace(/[^A-Za-z]/g, '');
+              if (!plain) {
+                return false;
+              }
+              return plain[0] === plain[0].toUpperCase() && plain.slice(1) === plain.slice(1).toLowerCase();
+            });
+            return isUpper || isTitle;
+          };
 
         const addDish = (name, time, origin, rawLine, context = {}) => {
           const dishName = sanitizeDishName(stripTimeFromLine(name));
@@ -4685,17 +4807,18 @@ function normalizeLine(line) {
           if (!context.forceDish && score < DISH_SCORE_THRESHOLD) {
             return null;
           }
-          const dish = {
-            id: makeIdFromName(dishName, 'PLATO'),
-            nombre: dishName,
-            tiempo: time,
-            origen: origin,
-            categoria: currentCategory,
-            procesos: [],
-            recursos_hint: [],
-            pax: extractPaxFromLine(rawLine || name) || null,
-            forcedEnumeration: Boolean(context.forceDish)
-          };
+            const dish = {
+              id: makeIdFromName(dishName, 'PLATO'),
+              nombre: dishName,
+              tiempo: time,
+              origen: origin,
+              categoria: currentSection,
+              section: currentSection || null,
+              procesos: [],
+              recursos_hint: [],
+              pax: extractPaxFromLine(rawLine || name) || null,
+              forcedEnumeration: Boolean(context.forceDish)
+            };
           const hints = parseResourceHints(dishName);
           if (hints.length) {
             dish.recursos_hint = hints;
@@ -4721,60 +4844,81 @@ function normalizeLine(line) {
             return;
           }
           const sectionMatch = rawLine.match(/^(entrantes?|principal(?:es)?|postres?|platos?)\s*:\s*(.*)$/i);
-          if (sectionMatch) {
-            currentCategory = sectionMatch[1].toUpperCase();
-            const rest = sectionMatch[2];
-            if (rest) {
-              rest
-                .split(/[,;\/]/)
-                .map((item) => item.trim())
-                .filter(Boolean)
-                .forEach((item) => {
-                  const time = extractTimeRange(item);
-                  addDish(item, time, 'PDF', item, {
-                    isExplicitBlock: true,
-                    hasTime: Boolean(time)
+            if (sectionMatch) {
+              currentSection = normalizeSection(sectionMatch[1]);
+              const rest = sectionMatch[2];
+              if (rest) {
+                rest
+                  .split(/[,;\/]/)
+                  .map((item) => item.trim())
+                  .filter(Boolean)
+                  .forEach((item) => {
+                    const time = extractTimeRange(item);
+                    addDish(item, time, 'PDF', item, {
+                      forceDish: true,
+                      isExplicitBlock: true,
+                      hasTime: Boolean(time)
+                    });
                   });
-                });
+              }
+              currentDish = null;
+              mode = null;
+              return;
             }
-            currentDish = null;
-            mode = null;
-            return;
-          }
           const menuMatch = rawLine.match(/^menu\b[^:]*:\s*(.*)$/i);
-          if (menuMatch) {
-            const rest = menuMatch[1];
-            if (rest) {
-              rest
-                .split(/[,;\/]/)
-                .map((item) => item.trim())
-                .filter(Boolean)
-                .forEach((item) => {
-                  const time = extractTimeRange(item);
-                  addDish(item, time, 'PDF', item, {
-                    isExplicitBlock: true,
-                    hasTime: Boolean(time)
+            if (menuMatch) {
+              const rest = menuMatch[1];
+              if (rest) {
+                rest
+                  .split(/[,;\/]/)
+                  .map((item) => item.trim())
+                  .filter(Boolean)
+                  .forEach((item) => {
+                    const time = extractTimeRange(item);
+                    addDish(item, time, 'PDF', item, {
+                      isExplicitBlock: true,
+                      hasTime: Boolean(time)
+                    });
                   });
-                });
+              }
+              currentDish = null;
+              mode = null;
+              return;
             }
-            currentDish = null;
-            mode = null;
-            return;
-          }
 
-          const trimmed = rawLine.trim();
-          if (!trimmed) {
-            return;
-          }
-          const token = normalizeToken(trimmed);
-          const line = normalizeLine(trimmed);
-          if (!line) {
-            return;
-          }
-          const enumMatch = trimmed.match(ENUMERATION_STRONG_RE);
-          if (enumMatch) {
-            const enumeratedName = String(enumMatch[2] || '').trim();
-            if (!isObviousDishHeader(enumeratedName)) {
+            const trimmed = rawLine.trim();
+            if (!trimmed) {
+              return;
+            }
+            const token = normalizeToken(trimmed);
+            const line = normalizeLine(trimmed);
+            if (!line) {
+              return;
+            }
+            const inlineSection = splitInlineSectionDish(trimmed);
+            if (inlineSection) {
+              currentSection = normalizeSection(inlineSection.section);
+              const rest = inlineSection.dish;
+              const time = extractTimeRange(rest);
+              addDish(rest, time, 'PDF', rest, {
+                forceDish: true,
+                isExplicitBlock: true,
+                hasTime: Boolean(time)
+              });
+              currentDish = null;
+              mode = null;
+              return;
+            }
+            if (isSectionHeaderLine(trimmed)) {
+              currentSection = normalizeSection(trimmed.replace(/[:\-\u2013\u2014]+$/, '').trim());
+              currentDish = null;
+              mode = null;
+              return;
+            }
+            const enumMatch = trimmed.match(ENUMERATION_STRONG_RE);
+            if (enumMatch) {
+              const enumeratedName = String(enumMatch[2] || '').trim();
+              if (!isObviousDishHeader(enumeratedName)) {
               const time = extractTimeRange(enumeratedName);
               currentDish = addDish(enumeratedName, time, 'PDF', trimmed, {
                 dishName: sanitizeDishName(stripTimeFromLine(enumeratedName)),
@@ -5385,9 +5529,20 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         }
         const typeCounts = { HORNO: 0, FOGONES: 0, ESTACION: 0, FREGADERO: 0 };
         const processCounts = {};
-        const hotProcesses = new Set(['COCER', 'HERVIR', 'SALTEAR', 'SOFREIR', 'FREIR', 'REDUCIR']);
+        const hotProcesses = new Set(['COCER', 'HERVIR', 'SALTEAR', 'SOFREIR', 'FREIR', 'REDUCIR', 'BANO_MARIA']);
         const hornoProcesses = new Set(['HORNEAR', 'GRATINAR', 'ASAR']);
-        const stationProcesses = new Set(['LAVAR', 'CORTAR', 'MEZCLAR', 'EMPLATAR']);
+        const stationProcesses = new Set([
+          'LAVAR',
+          'ESCURRIR',
+          'CORTAR',
+          'MEZCLAR',
+          'MONTAR',
+          'FORMAR',
+          'TRITURAR',
+          'EMPLATAR',
+          'REPOSAR',
+          'ENFRIAR'
+        ]);
         let totalProcesses = 0;
         dishes.forEach((dish) => {
           const processes = inferDishProcessesForResources(dish);
@@ -5397,13 +5552,13 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             if (hornoProcesses.has(process)) {
               typeCounts.HORNO += 1;
             }
-            if (hotProcesses.has(process) || process === 'BANO_MARIA') {
+            if (hotProcesses.has(process)) {
               typeCounts.FOGONES += 1;
             }
             if (stationProcesses.has(process)) {
               typeCounts.ESTACION += 1;
             }
-            if (process === 'LAVAR') {
+            if (process === 'LAVAR' || process === 'ESCURRIR') {
               typeCounts.FREGADERO += 1;
             }
           });
@@ -5758,16 +5913,17 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           base.push('CORTAR');
         }
         let processes = normalizeProcessList(base.concat(explicitProcesses, extraProcesses));
-        if (!processes.includes('EMPLATAR')) {
-          processes.push('EMPLATAR');
-        }
-        if (processes.length < 4) {
-          const insertAt = Math.max(0, processes.length - 1);
-          processes.splice(insertAt, 0, 'MEZCLAR');
-        }
-        if (explicitProcesses.length) {
-          return buildTasksFromProcessList(processes, dish, index, resources, suggestions);
-        }
+          if (!processes.includes('EMPLATAR')) {
+            processes.push('EMPLATAR');
+          }
+          if (processes.length < 4) {
+            const insertAt = Math.max(0, processes.length - 1);
+            processes.splice(insertAt, 0, 'MEZCLAR');
+          }
+          if (explicitProcesses.length) {
+            // Avoid infinite recursion when explicit process lists are already normalized.
+            processList = processes;
+          }
         const ingredientCount = Array.isArray(dish.ingredientes) ? dish.ingredientes.length : 0;
         const paxValue = sanitizeInt(dish.pax, 0);
         const extraLoad = Math.min(10, Math.floor(ingredientCount / 6) * 2) + (paxValue >= 8 ? 2 : 0);
@@ -7331,6 +7487,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           }
           return null;
         }
+        state.ignoreMissingResources = false;
         const normalizedText = normalizeText(text);
         const normalizedForMatch = normalizeToken(normalizedText);
         const { lines, baseLineCount, fallbackUsed } = normalizeLines(normalizedText);
@@ -8685,7 +8842,7 @@ async function handlePdfFile(file) {
         }
 
         function buildDiagnostics(planToCheck, errors, warnings, draft) {
-          const missingResources = new Set();
+          const missingResources = new Map();
           const assumptions = Array.isArray(planToCheck?.incertidumbres_detectadas)
             ? planToCheck.incertidumbres_detectadas
             : [];
@@ -8702,7 +8859,9 @@ async function handlePdfFile(file) {
             if (!typeKey || !knownTypeKeys.has(typeKey)) {
               return;
             }
-            missingResources.add(RESOURCE_LABELS[typeKey] || typeKey);
+            if (!missingResources.has(typeKey)) {
+              missingResources.set(typeKey, RESOURCE_LABELS[typeKey] || typeKey);
+            }
           };
 
           (planToCheck?.tareas || []).forEach((task) => {
@@ -8738,12 +8897,16 @@ async function handlePdfFile(file) {
             }
           });
 
+          const ignoreMissing = Boolean(state && state.ignoreMissingResources);
+          const missingResourceTypeKeys = ignoreMissing ? [] : Array.from(missingResources.keys());
+          const missingResourceLabels = ignoreMissing ? [] : Array.from(missingResources.values());
           const diagnostics = {
             warnings: warnings || [],
             errors: errors || [],
             fixes,
             assumptions,
-            missingResources: Array.from(missingResources),
+            missingResources: missingResourceLabels,
+            missingResourceTypeKeys,
             missingDurations,
             unassignedTasks,
             inferredResources: (planToCheck?.recursos || []).filter(
@@ -8770,7 +8933,7 @@ async function handlePdfFile(file) {
             issues.push({
               id: 'resources',
               message: 'Faltan recursos',
-              action: 'add-resources',
+              action: 'add-missing-resources',
               label: 'Anadir'
             });
           }
@@ -9148,10 +9311,10 @@ async function handlePdfFile(file) {
         const summaryHtml = summaryItems
           .map((item) => {
             const fixBtn = item.fixAction
-              ? `<button class="btn ghost mini-btn" data-action="${item.fixAction}">${item.fixLabel}</button>`
+              ? `<button class="btn ghost mini-btn" type="button" data-action="${item.fixAction}">${item.fixLabel}</button>`
               : '';
             const reviewBtn = item.reviewAction
-              ? `<button class="btn ghost mini-btn" data-action="${item.reviewAction}">${item.reviewLabel}</button>`
+              ? `<button class="btn ghost mini-btn" type="button" data-action="${item.reviewAction}">${item.reviewLabel}</button>`
               : '';
             return `
               <div class="validation-item ${errorCount ? 'error' : 'warn'}">
@@ -9279,7 +9442,7 @@ async function handlePdfFile(file) {
             severity: 'error',
             title: 'Tareas sin duracion',
             meta: `${diagnostics.missingDurations} tareas`,
-            action: 'validation-fix-durations',
+            action: 'auto-assign-durations',
             label: 'Completar automaticamente'
           });
         }
@@ -9288,7 +9451,7 @@ async function handlePdfFile(file) {
             severity: 'warn',
             title: 'Tareas sin asignar',
             meta: `${diagnostics.unassignedTasks} tareas`,
-            action: 'auto-assign-tasks',
+            action: 'auto-assign-team',
             label: 'Repartir tareas'
           });
         }
@@ -9297,7 +9460,7 @@ async function handlePdfFile(file) {
             severity: 'warn',
             title: 'Recursos faltantes',
             meta: diagnostics.missingResources.join(', '),
-            action: 'auto-assign-resources',
+            action: 'add-missing-resources',
             label: 'Asignar recursos'
           });
         }
@@ -9326,7 +9489,7 @@ async function handlePdfFile(file) {
             <div class="issue-card ${card.severity}">
               <div class="issue-title">${card.title}</div>
               <div class="issue-meta">${card.meta}</div>
-              <button class="btn ghost mini-btn" data-action="${card.action}">${card.label}</button>
+              <button class="btn ghost mini-btn" type="button" data-action="${card.action}">${card.label}</button>
             </div>
           `
           )
@@ -9501,10 +9664,17 @@ async function handlePdfFile(file) {
           if (!action) {
             return;
           }
-          if (action === 'add-resources') {
-            addSuggestedResources();
-            assignResourcesByHeuristic({ silent: true });
+          if (action === 'add-missing-resources' || action === 'add-resources') {
+            const created = addMissingResourcesFromDiagnostics();
+            const assigned = assignResourcesByHeuristic({ silent: true });
+            if (state?.debugEnabled) {
+              console.debug('[alerts] add-missing-resources', { created, assigned });
+            }
             render();
+            return;
+          }
+          if (action === 'ignore-missing-resources') {
+            setIgnoreMissingResources(true);
             return;
           }
           if (action === 'review') {
@@ -9816,6 +9986,68 @@ async function handlePdfFile(file) {
         return created;
       }
 
+      function getDefaultResourceCapacity(typeKey) {
+        return 1;
+      }
+
+      function addMissingResourcesFromDiagnostics() {
+        if (!plan) {
+          return 0;
+        }
+        if (state?.ignoreMissingResources) {
+          return 0;
+        }
+        const diagnostics = state?.diagnostics || emptyDiagnostics();
+        const missingTypeKeys = Array.isArray(diagnostics.missingResourceTypeKeys)
+          ? diagnostics.missingResourceTypeKeys
+          : [];
+        const fallbackKeys = missingTypeKeys.length
+          ? missingTypeKeys
+          : (diagnostics.missingResources || []).map((label) => normalizeResourceName(label)).filter(Boolean);
+        if (!fallbackKeys.length) {
+          return 0;
+        }
+        const catalog = getEffectiveResourcesCatalog(plan.recursos);
+        const existingIds = new Set(plan.recursos.map((resource) => resource.id));
+        let created = 0;
+        fallbackKeys.forEach((rawKey) => {
+          const typeKey = normalizeResourceName(rawKey);
+          if (!typeKey || !ALLOWED_RESOURCE_TYPES.has(typeKey)) {
+            return;
+          }
+          if (catalog.byTypeKey[typeKey]?.length) {
+            return;
+          }
+          const id = existingIds.has(typeKey) ? ensureUniqueId(typeKey, existingIds) : typeKey;
+          existingIds.add(id);
+          plan.recursos.push({
+            id,
+            nombre: RESOURCE_LABELS[typeKey] || typeKey,
+            capacidad: getDefaultResourceCapacity(typeKey),
+            tipo: inferResourceType(typeKey),
+            typeKey,
+            auto: true,
+            suggested: true,
+            source: 'inferred'
+          });
+          created += 1;
+        });
+        if (created) {
+          state.ignoreMissingResources = false;
+          syncMaps();
+          validateAndStore();
+          calculatePlan({ silent: true });
+        }
+        return created;
+      }
+
+      function setIgnoreMissingResources(value) {
+        state.ignoreMissingResources = Boolean(value);
+        validateAndStore();
+        calculatePlan({ silent: true });
+        render();
+      }
+
       function renderAssignments() {
         const reviewSection = document.getElementById('review');
         const reviewEmptyEl = document.getElementById('review-empty');
@@ -9854,19 +10086,18 @@ async function handlePdfFile(file) {
             .filter((issue) => issue.severity === 'warning' && issue.entityType === 'task')
             .map((issue) => issue.entityId)
         );
+        const errorCount = (state.issues || []).filter((issue) => issue.severity === 'error').length;
+        const warningCount = (state.issues || []).filter((issue) => issue.severity === 'warning').length;
         plan.tareas.forEach((task) => {
           const info = getTaskIncompleteInfo(task);
-          if (errorTaskIds.has(task.id)) {
-            info.incomplete = true;
-          }
+          info.incomplete = errorTaskIds.has(task.id);
           incompleteMap.set(task.id, info);
           if (info.incomplete) {
             incompleteCount += 1;
           }
         });
         if (incompleteCountEl) {
-          const warningCount = warningTaskIds.size;
-          incompleteCountEl.textContent = `Errores bloqueantes: ${incompleteCount} | Avisos: ${warningCount}`;
+          incompleteCountEl.textContent = `Errores bloqueantes: ${errorCount} | Avisos: ${warningCount}`;
         }
         if (normalizedCountEl) {
           const normalizedCount = plan.tareas.filter((task) => task.autoNormalized).length;
@@ -9874,7 +10105,6 @@ async function handlePdfFile(file) {
             ? `Nombres simplificados automaticamente: ${normalizedCount}`
             : '';
         }
-        const errorCount = (state.issues || []).filter((issue) => issue.severity === 'error').length;
         if (approvePlanBtn) {
           approvePlanBtn.disabled = errorCount > 0;
           approvePlanBtn.title = errorCount
@@ -10130,8 +10360,8 @@ async function handlePdfFile(file) {
             missing.recurso = true;
           }
         }
-        const incomplete = Object.values(missing).some(Boolean);
-        return { incomplete, missing, expected };
+        const missingAny = Object.values(missing).some(Boolean);
+        return { incomplete: false, missing, expected, missingAny };
       }
 
       function fillMissingDurations({ silent = false } = {}) {
@@ -11323,6 +11553,8 @@ function updateControls() {
         window.goToView = goToView;
         window.assignResourcesByHeuristic = assignResourcesByHeuristic;
         window.addSuggestedResources = addSuggestedResources;
+        window.addMissingResourcesFromDiagnostics = addMissingResourcesFromDiagnostics;
+        window.setIgnoreMissingResources = setIgnoreMissingResources;
         window.fillMissingDurations = fillMissingDurations;
         window.autoAssignBalanced = autoAssignBalanced;
         window.sanitizePlanForStorage = sanitizePlanForStorage;

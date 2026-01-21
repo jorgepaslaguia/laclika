@@ -75,7 +75,7 @@
                 <div id="manual-box" class="manual-box">
                   <textarea id="menuTextArea" class="text-input" placeholder="Pega el texto del menu aqui si es necesario"></textarea>
                   <div class="controls">
-                    <button id="btnInterpret" class="btn ghost">Interpretar texto</button>
+                    <button id="btnInterpret" class="btn ghost" type="button">Interpretar texto</button>
                   </div>
                 </div>
                 <details id="debug-panel" class="debug-panel expert-only">
@@ -92,15 +92,17 @@
                   <div class="alert-title">Alertas (<span id="alerts-count">0</span>)</div>
                   <div id="alerts-lines" class="note">Sin alertas.</div>
                   <div class="controls">
-                    <button id="alerts-review" class="btn ghost">Ver</button>
-                    <button id="alerts-dismiss" class="btn ghost">Ignorar por ahora</button>
+                    <button id="alerts-review" class="btn ghost" type="button">Ver</button>
+                    <button id="alerts-dismiss" class="btn ghost" type="button" data-action="ignore-missing-resources">
+                      Ignorar por ahora
+                    </button>
                   </div>
                 </div>
                 <div id="alerts-panel" class="alert-panel">
                   <div class="alert-section">
                     <div class="label">Recursos faltantes</div>
                     <div id="alerts-missing" class="note">Sin recursos faltantes.</div>
-                    <button id="alerts-add-resources" class="btn ghost mini-btn">
+                    <button id="alerts-add-resources" class="btn ghost mini-btn" type="button" data-action="add-missing-resources">
                       Anadir recursos sugeridos
                     </button>
                   </div>
@@ -122,12 +124,12 @@
                     <div class="label">Recursos</div>
                     <div id="resource-summary" class="note"></div>
                     <div id="resource-editor"></div>
-                    <button id="add-resource" class="btn ghost mini-btn">+ Anadir recurso</button>
+                    <button id="add-resource" class="btn ghost mini-btn" type="button">+ Anadir recurso</button>
                   </div>
                   <div class="config-block">
                     <div class="label">Equipo</div>
                     <div id="team-editor"></div>
-                    <button id="add-person" class="btn ghost mini-btn">+ Anadir persona</button>
+                    <button id="add-person" class="btn ghost mini-btn" type="button">+ Anadir persona</button>
                   </div>
                 </div>
                 <div class="controls"></div>
@@ -148,10 +150,16 @@
                   <div class="settings-block">
                     <div class="block-title">Acciones rapidas</div>
                     <div id="settings-actions" class="controls">
-                      <button id="btn-fix-all" class="btn primary">Resolver todo</button>
-                      <button id="btn-assign-resources" class="btn ghost">Asignar recursos</button>
-                      <button id="btn-autoassign-balanced" class="btn ghost">Autoasignar equipo</button>
-                      <button id="btn-fill-durations" class="btn ghost">Autoduraciones</button>
+                      <button id="btn-fix-all" class="btn primary" type="button">Resolver todo</button>
+                      <button id="btn-assign-resources" class="btn ghost" type="button" data-action="add-missing-resources">
+                        Asignar recursos
+                      </button>
+                      <button id="btn-autoassign-balanced" class="btn ghost" type="button" data-action="auto-assign-team">
+                        Autoasignar equipo
+                      </button>
+                      <button id="btn-fill-durations" class="btn ghost" type="button" data-action="auto-assign-durations">
+                        Autoduraciones
+                      </button>
                     </div>
                   </div>
 
@@ -167,13 +175,13 @@
                         <div class="settings-block">
                           <div class="block-title">Acciones avanzadas</div>
                           <div class="controls">
-                            <button id="btn-start-service" class="btn success">Iniciar servicio</button>
+                            <button id="btn-start-service" class="btn success" type="button">Iniciar servicio</button>
                           </div>
                         </div>
                         <div class="settings-block">
                           <div class="block-title">Problemas</div>
                           <div id="settings-issues-toggle" class="controls">
-                            <button id="btn-toggle-issues" class="btn ghost">Ver problemas</button>
+                            <button id="btn-toggle-issues" class="btn ghost" type="button">Ver problemas</button>
                           </div>
                           <div id="settings-issues" class="settings-issues">
                             <div id="validation-list" class="validation"></div>
@@ -183,34 +191,34 @@
                         <div class="settings-block">
                           <div class="block-title">Sesion</div>
                           <div class="controls">
-                            <button id="continue-session" class="btn ghost">Continuar ultima sesion</button>
-                            <button id="reset-session" class="btn ghost">Reset sesion</button>
+                            <button id="continue-session" class="btn ghost" type="button">Continuar ultima sesion</button>
+                            <button id="reset-session" class="btn ghost" type="button">Reset sesion</button>
                           </div>
                         </div>
 
                         <div class="settings-block">
                           <div class="block-title">Gestion de recetas</div>
                           <div class="controls">
-                            <button id="btn-save-recipe" class="btn">Guardar receta</button>
-                            <button id="btn-save-as-new" class="btn ghost">Guardar como nueva</button>
+                            <button id="btn-save-recipe" class="btn" type="button">Guardar receta</button>
+                            <button id="btn-save-as-new" class="btn ghost" type="button">Guardar como nueva</button>
                           </div>
                         </div>
 
                         <div class="settings-block">
                           <div class="block-title">Optimizacion</div>
                           <div class="controls">
-                            <button id="btn-rebalance-team" class="btn">Reequilibrar equipo</button>
-                            <button id="btn-recalc-route" class="btn ghost">Recalcular ruta optima</button>
+                            <button id="btn-rebalance-team" class="btn" type="button">Reequilibrar equipo</button>
+                            <button id="btn-recalc-route" class="btn ghost" type="button">Recalcular ruta optima</button>
                           </div>
                         </div>
 
                         <div class="settings-block service-only">
                           <div class="block-title">Control de servicio</div>
                           <div class="controls">
-                            <button id="btn-approve-plan" class="btn ghost">Aprobar y programar</button>
-                            <button id="btn-phase-prev" class="btn ghost">Retroceder</button>
-                            <button id="btn-phase-next" class="btn ghost">Avanzar</button>
-                            <button id="btn-phase-skip" class="btn ghost">Saltar</button>
+                            <button id="btn-approve-plan" class="btn ghost" type="button">Aprobar y programar</button>
+                            <button id="btn-phase-prev" class="btn ghost" type="button">Retroceder</button>
+                            <button id="btn-phase-next" class="btn ghost" type="button">Avanzar</button>
+                            <button id="btn-phase-skip" class="btn ghost" type="button">Saltar</button>
                           </div>
                         </div>
                       </div>
@@ -295,7 +303,7 @@
                 </section>
                 <section class="section" id="prep-ready">
                   <div class="ready-title">Plan listo para el servicio</div>
-                  <button id="go-kitchen" class="btn primary">Ir a Cocina</button>
+                  <button id="go-kitchen" class="btn primary" type="button">Ir a Cocina</button>
                 </section>
               </section>
             </main>
@@ -339,8 +347,8 @@
           </div>
 
           <footer class="kitchen-footer">
-            <button id="pause-phase" class="btn">Pausar</button>
-            <button id="finalize-phase" class="btn ghost">Finalizar fase</button>
+            <button id="pause-phase" class="btn" type="button">Pausar</button>
+            <button id="finalize-phase" class="btn ghost" type="button">Finalizar fase</button>
           </footer>
         </section>
       </section>
@@ -352,6 +360,7 @@
 
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script defer src="core.js"></script>
+    <script defer src="parser_fixtures.js"></script>
     <script defer src="parser_smoke.js"></script>
     <script defer src="app.js"></script>
   </body>

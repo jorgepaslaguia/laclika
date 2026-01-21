@@ -402,6 +402,87 @@
       navigateTo('kitchen');
     };
 
+    const warnAction = (action, reason) => {
+      if (!action) {
+        return;
+      }
+      const detail = reason ? `: ${reason}` : '';
+      console.warn(`[action] ${action}${detail}`);
+    };
+
+    const handleAddMissingResources = () => {
+      if (state?.ignoreMissingResources) {
+        warnAction('add-missing-resources', 'recursos ignorados');
+        if (planStatusEl) {
+          planStatusEl.textContent = 'Recursos marcados como ignorados. Desactivalo para autoasignar.';
+        }
+        return;
+      }
+      if (!plan || plan?.isEmpty) {
+        warnAction('add-missing-resources', 'plan vacio');
+        return;
+      }
+      const created =
+        typeof addMissingResourcesFromDiagnostics === 'function' ? addMissingResourcesFromDiagnostics() : 0;
+      const assigned = typeof assignResourcesByHeuristic === 'function'
+        ? assignResourcesByHeuristic({ silent: true })
+        : 0;
+      if (!created && !assigned) {
+        warnAction('add-missing-resources', 'sin recursos pendientes');
+      }
+      if (planStatusEl) {
+        planStatusEl.textContent = 'Recursos creados: ' + created + '. Tareas asignadas: ' + assigned + '.';
+      }
+      render();
+    };
+
+    const handleIgnoreMissingResources = () => {
+      setState({ alertsOpen: false });
+      if (typeof setIgnoreMissingResources === 'function') {
+        setIgnoreMissingResources(true);
+        return;
+      }
+      if (window.state) {
+        window.state.ignoreMissingResources = true;
+      }
+      if (typeof validateAndStore === 'function') {
+        validateAndStore();
+      }
+      render();
+    };
+
+    const handleAutoAssignTeam = () => {
+      if (typeof autoAssignBalanced !== 'function') {
+        warnAction('auto-assign-team', 'autoAssignBalanced missing');
+        return;
+      }
+      const result = autoAssignBalanced({ phaseOnly: false, respectLocked: true, onlyUnassigned: true });
+      const assigned = result.assignedCount || 0;
+      const locked = result.skippedLocked || 0;
+      if (!assigned) {
+        warnAction('auto-assign-team', 'sin tareas para asignar');
+      }
+      if (planStatusEl) {
+        planStatusEl.textContent = `Autoasignado: ${assigned} tareas. No se tocaron ${locked} tareas fijadas.`;
+      }
+      render();
+    };
+
+    const handleAutoAssignDurations = () => {
+      if (typeof fillMissingDurations !== 'function') {
+        warnAction('auto-assign-durations', 'fillMissingDurations missing');
+        return;
+      }
+      const count = fillMissingDurations();
+      if (!count) {
+        warnAction('auto-assign-durations', 'sin duraciones pendientes');
+      }
+      if (planStatusEl) {
+        planStatusEl.textContent = count ? `Duraciones completadas: ${count}.` : 'No hay duraciones pendientes.';
+      }
+      render();
+    };
+
     const handleValidationAction = (action, issueId = null) => {
       if (action === 'review') {
         handleAlertAction('review');
@@ -442,11 +523,14 @@
         return;
       }
       if (action === 'validation-add-resources') {
-        const created = typeof addSuggestedResources === 'function' ? addSuggestedResources() : 0;
+        const createdMissing =
+          typeof addMissingResourcesFromDiagnostics === 'function' ? addMissingResourcesFromDiagnostics() : 0;
+        const createdSuggested = typeof addSuggestedResources === 'function' ? addSuggestedResources() : 0;
         const assigned = typeof assignResourcesByHeuristic === 'function'
           ? assignResourcesByHeuristic({ silent: true })
           : 0;
-        planStatusEl.textContent = 'Recursos creados: ' + created + '. Tareas asignadas: ' + assigned + '.';
+        planStatusEl.textContent =
+          'Recursos creados: ' + (createdMissing + createdSuggested) + '. Tareas asignadas: ' + assigned + '.';
         render();
         return;
       }
@@ -683,12 +767,25 @@
           return;
         }
         try {
-          if (action === 'auto-assign-tasks' || action === 'distribute-tasks') {
-            handleValidationAction('validation-assign');
+          if (action === 'auto-assign-team' || action === 'auto-assign-tasks' || action === 'distribute-tasks') {
+            handleAutoAssignTeam();
             return;
           }
-          if (action === 'auto-assign-resources' || action === 'assign-missing-resources') {
-            handleValidationAction('validation-add-resources');
+          if (
+            action === 'add-missing-resources' ||
+            action === 'auto-assign-resources' ||
+            action === 'assign-missing-resources' ||
+            action === 'add-resources'
+          ) {
+            handleAddMissingResources();
+            return;
+          }
+          if (action === 'auto-assign-durations') {
+            handleAutoAssignDurations();
+            return;
+          }
+          if (action === 'ignore-missing-resources') {
+            handleIgnoreMissingResources();
             return;
           }
           if (action === 'retry-interpret') {
@@ -699,12 +796,17 @@
         }
       });
     }
+    if (!document.querySelector('[data-action]')) {
+      console.warn('No hay elementos con data-action en el DOM.');
+    }
 
     on(alertsLinesEl, 'click', (event) => {
       const button = event.target.closest('button[data-action]');
       if (!button) {
         return;
       }
+      event.preventDefault();
+      event.stopPropagation();
       handleAlertAction(button.dataset.action);
     });
     on(aiSummaryEl, 'click', (event) => {
@@ -712,6 +814,8 @@
       if (!button) {
         return;
       }
+      event.preventDefault();
+      event.stopPropagation();
       handleAlertAction(button.dataset.action);
     });
     on(alertsReviewBtn, 'click', () => {
@@ -720,22 +824,21 @@
       }
       handleAlertAction('review');
     });
-    on(alertsDismissBtn, 'click', () => {
+    on(alertsDismissBtn, 'click', (event) => {
+      if (alertsDismissBtn?.dataset?.action) {
+        return;
+      }
       setState({ alertsOpen: false });
       render();
     });
-    on(alertsAddResourcesBtn, 'click', () => {
+    on(alertsAddResourcesBtn, 'click', (event) => {
+      if (alertsAddResourcesBtn?.dataset?.action) {
+        return;
+      }
       if (alertsAddResourcesBtn.disabled) {
         return;
       }
-      const created = typeof addSuggestedResources === 'function' ? addSuggestedResources() : 0;
-      const assigned = typeof assignResourcesByHeuristic === 'function'
-        ? assignResourcesByHeuristic({ silent: true })
-        : 0;
-      if (planStatusEl) {
-        planStatusEl.textContent = 'Recursos creados: ' + created + '. Tareas asignadas: ' + assigned + '.';
-      }
-      render();
+      handleAddMissingResources();
     });
 
     on(validationListEl, 'click', (event) => {
@@ -756,11 +859,10 @@
     }
 
     on(autoAssignBalancedBtn, 'click', () => {
-      const result = autoAssignBalanced({ phaseOnly: false, respectLocked: true, onlyUnassigned: true });
-      const assigned = result.assignedCount || 0;
-      const locked = result.skippedLocked || 0;
-      planStatusEl.textContent = `Autoasignado: ${assigned} tareas. No se tocaron ${locked} tareas fijadas.`;
-      render();
+      if (autoAssignBalancedBtn?.dataset?.action) {
+        return;
+      }
+      handleAutoAssignTeam();
     });
     if (rebalanceTeamBtn) {
       rebalanceTeamBtn.addEventListener('click', () => {
@@ -951,24 +1053,25 @@
       render();
     });
     on(btnAssignResources, 'click', () => {
-      const count = assignResourcesByHeuristic();
-      planStatusEl.textContent = count ? `Recursos asignados: ${count}.` : 'No hay recursos pendientes.';
-      render();
+      if (btnAssignResources?.dataset?.action) {
+        return;
+      }
+      handleAddMissingResources();
     });
     on(btnAutoassignBalanced, 'click', () => {
-      const result = autoAssignBalanced({ phaseOnly: false, respectLocked: true, onlyUnassigned: true });
-      const assigned = result.assignedCount || 0;
-      const locked = result.skippedLocked || 0;
-      planStatusEl.textContent = `Autoasignado: ${assigned} tareas. No se tocaron ${locked} tareas fijadas.`;
-      render();
+      if (btnAutoassignBalanced?.dataset?.action) {
+        return;
+      }
+      handleAutoAssignTeam();
     });
     on(btnFillDurations, 'click', () => {
-      const count = fillMissingDurations();
-      planStatusEl.textContent = count ? `Duraciones completadas: ${count}.` : 'No hay duraciones pendientes.';
-      if (state?.debugEnabled) {
-        console.debug('[settings] fill-durations', { count });
+      if (btnFillDurations?.dataset?.action) {
+        return;
       }
-      render();
+      handleAutoAssignDurations();
+      if (state?.debugEnabled) {
+        console.debug('[settings] fill-durations');
+      }
     });
     on(btnContinueSession, 'click', () => {
       const lastPlan = typeof sanitizeStoredPlan === 'function'
