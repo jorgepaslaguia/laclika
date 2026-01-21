@@ -1631,6 +1631,7 @@ if (typeof window !== 'undefined') {
           screen: 'library',
           view: 'library',
           activeRecipeId: null,
+          unsavedPlan: false,
           libraryTag: 'ALL',
           planReady: false,
           approved: false,
@@ -2463,7 +2464,7 @@ if (typeof window !== 'undefined') {
         return plan.faseActiva || plan.phaseActive || (plan.fases || PHASES)[0];
       }
 
-      function setPlan(nextPlan, draft = null, summary = '', questions = []) {
+      function setPlan(nextPlan, draft = null, summary = '', questions = [], options = {}) {
         const planInput = nextPlan ?? EMPTY_PLAN;
         const inputTasks = Array.isArray(planInput?.tareas || planInput?.tasks) ? (planInput.tareas || planInput.tasks).length : 0;
         plan = normalizePlan(planInput);
@@ -2502,7 +2503,7 @@ if (typeof window !== 'undefined') {
         state.pausedFrom = null;
         resetPhaseTimer();
         syncMaps();
-        validateAndStore();
+        validateAndStore({ markDirty: options.markDirty === true });
         calculatePlan({ silent: true });
         render();
       }
@@ -2594,11 +2595,18 @@ if (typeof window !== 'undefined') {
         }
       }
 
-      function savePlanAsNewRecipe() {
+      function savePlanAsNewRecipe(name) {
         if (!plan) {
           return null;
         }
-        const recipe = addRecipe(createRecipeFromPlan(plan, { name: deriveRecipeName(plan.name) }));
+        const trimmed = String(name || '').trim();
+        if (!trimmed) {
+          return null;
+        }
+        const recipe = addRecipe(createRecipeFromPlan(plan, { name: trimmed }));
+        if (recipe) {
+          state.unsavedPlan = false;
+        }
         return recipe;
       }
 
@@ -2617,6 +2625,7 @@ if (typeof window !== 'undefined') {
         recipe.notes = plan.notas || recipe.notes || null;
         recipe.menuText = appState.menuRawText ?? recipe.menuText ?? '';
         saveRecipesToStorage();
+        state.unsavedPlan = false;
         return recipe;
       }
 
@@ -2698,6 +2707,7 @@ if (typeof window !== 'undefined') {
         const nextPlan = instantiatePlanFromRecipe(recipe);
         setPlan(nextPlan, null, 'Receta cargada', []);
         state.activeRecipeId = recipe.id;
+        state.unsavedPlan = false;
         localStorage.setItem(RECIPE_ACTIVE_KEY, recipe.id);
         if (manualTextEl && recipe.menuText) {
           manualTextEl.value = recipe.menuText;
@@ -7177,7 +7187,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         return { errors, warnings, diagnostics, issues };
       }
 
-        function validateAndStore() {
+        function validateAndStore(options = {}) {
           if (plan?.isEmpty) {
             state.diagnostics = emptyDiagnostics();
             state.issues = [];
@@ -7226,6 +7236,10 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             warningsCount: (state.issues || []).filter((issue) => issue.severity === 'warning').length,
             tareasCountFinal: plan?.tareas?.length || 0
           });
+          if (options.markDirty !== false) {
+            // Marca el plan como no guardado para la biblioteca.
+            state.unsavedPlan = true;
+          }
           saveLastPlan();
         }
 
@@ -7456,20 +7470,11 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
             ? 'Menu interpretado (tareas insuficientes).'
             : 'Menu interpretado.'
           : 'No se detectaron platos.';
-        setPlan(result.plan, draft, summary, result.plan.preguntas_rapidas);
-
-        try {
-          const baseName = deriveRecipeName(result.plan?.name || result.plan?.meta?.titulo || pdfState.name || '');
-          const recipe = addRecipe(createRecipeFromPlan(plan, { name: baseName }));
-          if (recipe && recipe.id) {
-            state.activeRecipeId = recipe.id;
-            localStorage.setItem(RECIPE_ACTIVE_KEY, recipe.id);
-          }
-        } catch (error) {
-          if (state.debugEnabled) {
-            console.warn('[processMenuText] Error guardando receta', error);
-          }
-        }
+        setPlan(result.plan, draft, summary, result.plan.preguntas_rapidas, { markDirty: true });
+        // Interpretar/importar solo actualiza el plan activo; no persiste en biblioteca.
+        state.activeRecipeId = null;
+        state.unsavedPlan = true;
+        localStorage.removeItem(RECIPE_ACTIVE_KEY);
 
         goToView('prep', { replace: true });
         updateDebugText();

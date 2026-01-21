@@ -377,6 +377,19 @@
     const modePrepBtnEl = byIdAny(['mode-prep', 'nav-prep', 'btn-prep']);
     const modeKitchenBtnEl = byIdAny(['mode-kitchen', 'nav-kitchen', 'btn-kitchen']);
 
+    const requestRecipeName = (defaultName = '') => {
+      const seed = String(defaultName || '').trim();
+      const entered = typeof window.prompt === 'function' ? window.prompt('Nombre de la receta', seed) : seed;
+      const trimmed = String(entered || '').trim();
+      if (!trimmed) {
+        if (planStatusEl) {
+          planStatusEl.textContent = 'Escribe un nombre para guardar la receta.';
+        }
+        return null;
+      }
+      return trimmed;
+    };
+
     const goToLibrary = () => {
       navigateTo('library');
     };
@@ -570,20 +583,47 @@
     }
     if (saveRecipeBtn) {
       saveRecipeBtn.addEventListener('click', () => {
-        if (saveActiveRecipeFromPlan()) {
-          planStatusEl.textContent = 'Receta guardada.';
-          render();
+        try {
+          const saved = saveActiveRecipeFromPlan();
+          if (saved) {
+            planStatusEl.textContent = 'Receta guardada.';
+            render();
+            return;
+          }
+          const planName = typeof plan === 'object' && plan ? plan.name || plan?.meta?.titulo : '';
+          const requested = requestRecipeName(planName);
+          if (!requested) {
+            return;
+          }
+          const recipe = savePlanAsNewRecipe(requested);
+          if (recipe) {
+            state.activeRecipeId = recipe.id;
+            localStorage.setItem(RECIPE_ACTIVE_KEY, recipe.id);
+            planStatusEl.textContent = 'Receta guardada en biblioteca.';
+            render();
+          }
+        } catch (error) {
+          reportActionError(error);
         }
       });
     }
     if (saveAsRecipeBtn) {
       saveAsRecipeBtn.addEventListener('click', () => {
-        const recipe = savePlanAsNewRecipe();
-        if (recipe) {
-          state.activeRecipeId = recipe.id;
-          localStorage.setItem(RECIPE_ACTIVE_KEY, recipe.id);
-          planStatusEl.textContent = 'Receta guardada como nueva.';
-          render();
+        try {
+          const planName = typeof plan === 'object' && plan ? plan.name || plan?.meta?.titulo : '';
+          const requested = requestRecipeName(planName);
+          if (!requested) {
+            return;
+          }
+          const recipe = savePlanAsNewRecipe(requested);
+          if (recipe) {
+            state.activeRecipeId = recipe.id;
+            localStorage.setItem(RECIPE_ACTIVE_KEY, recipe.id);
+            planStatusEl.textContent = 'Receta guardada como nueva.';
+            render();
+          }
+        } catch (error) {
+          reportActionError(error);
         }
       });
     }
