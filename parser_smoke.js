@@ -83,7 +83,9 @@
           }
         }
         const expect = fixture.expect || {};
-        const platesOk = plateCount >= (expect.platesMin || 1);
+        const platesMax = Number.isFinite(expect.platesMax) ? expect.platesMax : null;
+        const platesOk =
+          plateCount >= (expect.platesMin || 1) && (platesMax === null || plateCount <= platesMax);
         const tasksMin = Number.isFinite(expect.tasksMin) ? expect.tasksMin : 1;
         const tasksOk = plateCount === 0 ? true : taskCount >= tasksMin;
         const nonZeroOk = plateCount === 0 ? true : taskCount > 0;
@@ -127,12 +129,84 @@
     return results;
   }
 
+  function readStoredRecipes() {
+    try {
+      const raw =
+        localStorage.getItem('JCD_RECIPES_V1') || localStorage.getItem('jcd_recipes_v1') || null;
+      const parsed = raw ? JSON.parse(raw) : [];
+      return { raw, list: Array.isArray(parsed) ? parsed : [] };
+    } catch (error) {
+      return { raw: null, list: [] };
+    }
+  }
+
+  function restoreStoredRecipes(raw) {
+    if (raw === null) {
+      localStorage.removeItem('JCD_RECIPES_V1');
+      localStorage.removeItem('jcd_recipes_v1');
+      return;
+    }
+    localStorage.setItem('JCD_RECIPES_V1', raw);
+    localStorage.setItem('jcd_recipes_v1', raw);
+  }
+
+  function runLibrarySmoke() {
+    if (typeof window.processMenuText !== 'function') {
+      return { id: 'library_persistence', level: 0, ok: false, detail: 'processMenuText missing' };
+    }
+    const planSnapshot = window.plan ? JSON.parse(JSON.stringify(window.plan)) : null;
+    const activeRecipeId = window.state?.activeRecipeId || null;
+    const unsavedPlan = window.state?.unsavedPlan;
+    const activeRecipeKey = localStorage.getItem('jcd_active_recipe_v1');
+    const before = readStoredRecipes();
+    const beforeCount = before.list.length;
+
+    window.processMenuText('Ensalada mixta\nPollo al horno\nFlan casero');
+    const afterInterpret = readStoredRecipes();
+    const interpretOk = afterInterpret.list.length === beforeCount;
+
+    const saveFn =
+      window.savePlanAsNewRecipe || (typeof savePlanAsNewRecipe === 'function' ? savePlanAsNewRecipe : null);
+    const smokeName = `Smoke receta ${Date.now()}`;
+    const saved = saveFn ? saveFn(smokeName) : null;
+    const afterSave = readStoredRecipes();
+    const saveOk = Boolean(saved) && afterSave.list.length === beforeCount + 1;
+    const persistOk = afterSave.list.some((item) => item && item.name === smokeName);
+
+    restoreStoredRecipes(before.raw);
+    if (typeof loadRecipesFromStorage === 'function') {
+      loadRecipesFromStorage();
+    }
+    if (window.state) {
+      window.state.activeRecipeId = activeRecipeId;
+      if (typeof unsavedPlan === 'boolean') {
+        window.state.unsavedPlan = unsavedPlan;
+      }
+    }
+    if (activeRecipeKey) {
+      localStorage.setItem('jcd_active_recipe_v1', activeRecipeKey);
+    } else {
+      localStorage.removeItem('jcd_active_recipe_v1');
+    }
+    if (planSnapshot && typeof window.setPlan === 'function') {
+      window.setPlan(planSnapshot, null, '', []);
+    }
+
+    return {
+      id: 'library_persistence',
+      level: 0,
+      ok: interpretOk && saveOk && persistOk,
+      detail: `interpret ${interpretOk ? 'OK' : 'FAIL'} save ${saveOk ? 'OK' : 'FAIL'} persist ${persistOk ? 'OK' : 'FAIL'}`
+    };
+  }
+
   window.runParserSmoke = function runParserSmoke(options = {}) {
     if (typeof window.ensureParserFixturesLoaded === 'function') {
       window.ensureParserFixturesLoaded();
     }
     const fixtures = Array.isArray(window.PARSER_FIXTURES) ? window.PARSER_FIXTURES : [];
     const results = fixtures.length ? runFixtures(fixtures) : [{ id: 'fixtures', ok: false, detail: 'sin fixtures' }];
+    results.push(runLibrarySmoke());
     if (options.log !== false) {
       const okCount = results.filter((item) => item.ok).length;
       console.log(`[parser_smoke] ${okCount}/${results.length} OK`);

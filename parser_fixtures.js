@@ -12,6 +12,18 @@ window.PARSER_FIXTURES = [
     expect: { platesMin: 3, tasksMin: 6, phasesMin: 2, processIncludes: ['HORNEAR', 'BANO_MARIA'] }
   },
   {
+    id: 'menu_simple_lines',
+    level: 0,
+    text: 'Ensalada mixta\nPollo al horno\nFlan casero',
+    expect: { platesMin: 3, tasksMin: 6, phasesMin: 2 }
+  },
+  {
+    id: 'menu_with_metadata',
+    level: 0,
+    text: 'Recursos: horno x1; fogones x2; estacion x1\nEquipo: Chef + 2 pinches\nAlergias: gluten\nEnsalada mixta\nPollo al horno',
+    expect: { platesMin: 2, platesMax: 2, tasksMin: 4, phasesMin: 2 }
+  },
+  {
     id: 't3_ocr_spacing',
     level: 1,
     text: 'MENU 1. ENSALADA   MIXTA 2. POLLO   AL   HORNO 3. FLAN CASERO',
