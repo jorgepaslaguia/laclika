@@ -1,6 +1,13 @@
 // Stability notes (2026-01):
 // - Hash router supports #library/#prep/#kitchen (+ Spanish variants).
 // - setView delegates to core setUIMode when available, with fallback classes.
+// Product invariants:
+// - Interpretar (processMenuText/handleManualText) is the only entry that creates plan from text.
+// - Guardar requires explicit name; no implicit autosave on interpret.
+// - Navigation/panels never call processMenuText/buildPlanFromDraft/setPlan.
+// - runParserSmoke restores state/render and leaves no persistent side effects.
+// - Parser pipeline: interpretar does not persist; guardar requires explicit name.
+// - data-action shortcuts only change state.ui (read-only outside ops/adv).
 (() => {
   'use strict';
 
@@ -202,6 +209,7 @@
     const height = Math.ceil(topbar.getBoundingClientRect().height);
     document.documentElement.style.setProperty('--topbar-h', `${height}px`);
   };
+  const shouldLogUI = () => typeof window !== 'undefined' && window.DEBUG_UI;
 
   const jumpTo = (el) => {
     if (!el) {
@@ -380,7 +388,6 @@
     const debugToggleEl = document.getElementById('debug-toggle');
     const expertToggleEl = document.getElementById('expert-toggle');
     const alertsLinesEl = document.getElementById('alerts-lines');
-    const alertsReviewBtn = document.getElementById('alerts-review');
     const alertsDismissBtn = document.getElementById('alerts-dismiss');
     const alertsAddResourcesBtn = document.getElementById('alerts-add-resources');
     const aiSummaryEl = document.getElementById('ai-summary-content');
@@ -392,7 +399,6 @@
     const autoReviewBtn = document.getElementById('auto-review');
     const startServiceBtn = document.getElementById('start-service');
     const goKitchenBtn = document.getElementById('go-kitchen');
-    const advancedToggleBtn = document.getElementById('advanced-toggle');
     const settingsPanelEl = document.getElementById('settings-panel');
     const settingsIssuesEl = document.getElementById('settings-issues');
     const opsPanelEl = document.getElementById('opsPanel');
@@ -454,6 +460,19 @@
       if (opsAssignmentsEl) {
         opsAssignmentsEl.classList.toggle('hidden', !showOps || uiState.tab !== 'assignments');
       }
+      const hideOpsDupes = showOps;
+      if (btnAssignResources) {
+        btnAssignResources.classList.toggle('hidden', hideOpsDupes);
+      }
+      if (btnAutoassignBalanced) {
+        btnAutoassignBalanced.classList.toggle('hidden', hideOpsDupes);
+      }
+      if (alertsAddResourcesBtn) {
+        alertsAddResourcesBtn.classList.toggle('hidden', hideOpsDupes);
+      }
+      if (alertsDismissBtn) {
+        alertsDismissBtn.classList.toggle('hidden', hideOpsDupes);
+      }
     };
     wrapRender();
 
@@ -479,6 +498,17 @@
     };
 
     const goToKitchen = () => {
+      if (shouldLogUI()) {
+        const currentPlan = state?.plan || plan;
+        console.info('[ui-debug] go-kitchen', {
+          view: state?.view,
+          screen: state?.screen,
+          tasks: currentPlan?.tareas?.length || 0,
+          phases: (currentPlan?.fases || currentPlan?.phases || []).length,
+          planReady: state?.planReady,
+          approved: state?.approved
+        });
+      }
       navigateTo('kitchen');
     };
 
@@ -489,7 +519,7 @@
       const detail = reason ? `: ${reason}` : '';
       console.warn(`[action] ${action}${detail}`);
     };
-    const dispatchAction = (action) => {
+    const dispatchAction = (action, el) => {
       ensureUiState();
       if (!action) {
         return false;
@@ -501,6 +531,15 @@
       const openOps = (tab) => {
         uiState.panel = 'ops';
         uiState.tab = tab || uiState.tab || 'resources';
+        if (shouldLogUI()) {
+          const currentPlan = state?.plan || plan;
+          console.info('[ui-debug] open-ops', {
+            tab: uiState.tab,
+            resources: currentPlan?.recursos?.length || 0,
+            team: currentPlan?.equipo?.length || 0,
+            unsavedPlan: state?.unsavedPlan
+          });
+        }
         requestRender();
         return true;
       };
@@ -533,6 +572,9 @@
         default:
           break;
       }
+      if (action === 'review') {
+        return openAdv();
+      }
       if (
         action === 'add-missing-resources' ||
         action === 'assign-missing-resources' ||
@@ -547,6 +589,130 @@
       }
       if (action === 'auto-assign-durations') {
         return openAdv();
+      }
+      return false;
+    };
+    const getIssueId = (element) => {
+      if (!element) {
+        return null;
+      }
+      return element.dataset.issueId || element.closest('[data-issue-id]')?.dataset.issueId || null;
+    };
+    const getTaskId = (element) => {
+      if (!element) {
+        return null;
+      }
+      return element.dataset.taskId || element.closest('[data-task-id]')?.dataset.taskId || null;
+    };
+    const getRecipeId = (element) => {
+      if (!element) {
+        return null;
+      }
+      return element.dataset.recipeId || element.closest('[data-recipe-id]')?.dataset.recipeId || null;
+    };
+    const handleAction = (action, element) => {
+      if (dispatchAction(action, element)) {
+        return true;
+      }
+      if (action === 'retry-interpret') {
+        runRetryInterpret();
+        return true;
+      }
+      if (action === 'bulk-duration') {
+        const count = fillMissingDurations();
+        if (planStatusEl) {
+          planStatusEl.textContent = count ? `Duraciones completadas: ${count}.` : '0 tareas actualizadas.';
+        }
+        render();
+        return true;
+      }
+      if (action === 'bulk-resource') {
+        const count = assignResourcesByHeuristic();
+        if (planStatusEl) {
+          planStatusEl.textContent = count ? `Recursos asignados: ${count}.` : '0 tareas actualizadas.';
+        }
+        render();
+        return true;
+      }
+      if (action === 'bulk-assign') {
+        const result = autoAssignBalanced({ phaseOnly: false, respectLocked: true, onlyUnassigned: true });
+        const assigned = result.assignedCount || 0;
+        const locked = result.skippedLocked || 0;
+        if (planStatusEl) {
+          planStatusEl.textContent = assigned
+            ? `Autoasignado: ${assigned} tareas. No se tocaron ${locked} tareas fijadas.`
+            : '0 tareas actualizadas.';
+        }
+        render();
+        return true;
+      }
+      if (action === 'remove-resource') {
+        const row = element?.closest('[data-resource-id]');
+        if (row) {
+          removeResource(row.dataset.resourceId);
+        }
+        return true;
+      }
+      if (action === 'remove-person') {
+        const row = element?.closest('[data-person-id]');
+        if (row) {
+          removePerson(row.dataset.personId);
+        }
+        return true;
+      }
+      if (action === 'finish') {
+        const taskId = getTaskId(element);
+        if (taskId) {
+          handleTaskFinish(taskId);
+          render();
+        }
+        return true;
+      }
+      if (action === 'toggle') {
+        const taskId = getTaskId(element);
+        if (taskId) {
+          handleTaskToggle(taskId);
+          render();
+        }
+        return true;
+      }
+      if (
+        action === 'start-recipe' ||
+        action === 'edit-recipe' ||
+        action === 'duplicate-recipe' ||
+        action === 'delete-recipe'
+      ) {
+        const recipeId = getRecipeId(element);
+        if (!recipeId) {
+          return true;
+        }
+        if (action === 'start-recipe') {
+          setActiveRecipe(recipeId, { mode: 'kitchen', openSettings: false });
+          navigateTo('kitchen');
+          return true;
+        }
+        if (action === 'edit-recipe') {
+          setActiveRecipe(recipeId, { mode: 'prep', openSettings: true });
+          navigateTo('prep');
+          return true;
+        }
+        if (action === 'duplicate-recipe') {
+          duplicateRecipe(recipeId);
+          render();
+          return true;
+        }
+        if (action === 'delete-recipe') {
+          if (!window.confirm('Borrar esta receta?')) {
+            return true;
+          }
+          removeRecipe(recipeId);
+          render();
+          return true;
+        }
+      }
+      if (action.startsWith('validation-') || action.startsWith('issue-')) {
+        handleValidationAction(action, getIssueId(element));
+        return true;
       }
       return false;
     };
@@ -908,12 +1074,8 @@
           return;
         }
         try {
-          if (dispatchAction(action)) {
+          if (handleAction(action, target)) {
             event.preventDefault();
-            return;
-          }
-          if (action === 'retry-interpret') {
-            runRetryInterpret();
           }
         } catch (error) {
           reportActionError(error);
@@ -922,79 +1084,6 @@
     }
     if (!document.querySelector('[data-action]')) {
       console.warn('No hay elementos con data-action en el DOM.');
-    }
-
-    on(alertsLinesEl, 'click', (event) => {
-      const button = event.target.closest('button[data-action]');
-      if (!button) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      if (dispatchAction(button.dataset.action)) {
-        return;
-      }
-      handleAlertAction(button.dataset.action);
-    });
-    on(aiSummaryEl, 'click', (event) => {
-      const button = event.target.closest('button[data-action]');
-      if (!button) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      if (dispatchAction(button.dataset.action)) {
-        return;
-      }
-      handleAlertAction(button.dataset.action);
-    });
-    on(alertsReviewBtn, 'click', () => {
-      if (alertsReviewBtn.disabled) {
-        return;
-      }
-      if (dispatchAction(alertsReviewBtn?.dataset?.action)) {
-        return;
-      }
-      handleAlertAction('review');
-    });
-    on(alertsDismissBtn, 'click', (event) => {
-      if (alertsDismissBtn?.dataset?.action) {
-        return;
-      }
-      setState({ alertsOpen: false });
-      render();
-    });
-    on(alertsAddResourcesBtn, 'click', (event) => {
-      if (alertsAddResourcesBtn?.dataset?.action) {
-        return;
-      }
-      if (alertsAddResourcesBtn.disabled) {
-        return;
-      }
-      handleAddMissingResources();
-    });
-
-    on(validationListEl, 'click', (event) => {
-      const button = event.target.closest('button[data-action]');
-      if (!button) {
-        return;
-      }
-      if (dispatchAction(button.dataset.action)) {
-        return;
-      }
-      handleValidationAction(button.dataset.action, button.dataset.issueId);
-    });
-    if (prepIssuesGridEl) {
-      prepIssuesGridEl.addEventListener('click', (event) => {
-        const button = event.target.closest('button[data-action]');
-        if (!button) {
-          return;
-        }
-        if (dispatchAction(button.dataset.action)) {
-          return;
-        }
-        handleValidationAction(button.dataset.action, button.dataset.issueId);
-      });
     }
 
     on(autoAssignBalancedBtn, 'click', () => {
@@ -1031,16 +1120,6 @@
       goKitchenBtn.addEventListener('click', goToKitchen);
     }
 
-    if (advancedToggleBtn) {
-      advancedToggleBtn.addEventListener('click', () => {
-        const willOpen = !state.advancedOpen;
-        setState({ advancedOpen: willOpen, screen: 'plan' });
-        if (willOpen) {
-          setState({ uiMode: 'prep' });
-        }
-        render();
-      });
-    }
     if (settingsPanelEl) {
       settingsPanelEl.addEventListener('toggle', () => {
         closeOverlays(settingsPanelEl);
@@ -1305,39 +1384,6 @@
       }
       updateTask(taskId, { [field]: target.value });
     });
-    const setPlanStatus = (text) => {
-      if (!planStatusEl) {
-        return;
-      }
-      planStatusEl.textContent = text;
-    };
-
-    on(assignmentListEl, 'click', (event) => {
-      const button = event.target.closest('button[data-action]');
-      if (!button) {
-        return;
-      }
-      const action = button.dataset.action;
-      if (action === 'bulk-duration') {
-        const count = fillMissingDurations();
-        setPlanStatus(count ? `Duraciones completadas: ${count}.` : '0 tareas actualizadas.');
-        render();
-      } else if (action === 'bulk-resource') {
-        const count = assignResourcesByHeuristic();
-        setPlanStatus(count ? `Recursos asignados: ${count}.` : '0 tareas actualizadas.');
-        render();
-      } else if (action === 'bulk-assign') {
-        const result = autoAssignBalanced({ phaseOnly: false, respectLocked: true, onlyUnassigned: true });
-        const assigned = result.assignedCount || 0;
-        const locked = result.skippedLocked || 0;
-        setPlanStatus(
-          assigned
-            ? `Autoasignado: ${assigned} tareas. No se tocaron ${locked} tareas fijadas.`
-            : '0 tareas actualizadas.'
-        );
-        render();
-      }
-    });
 
     on(resourceEditorEl, 'change', (event) => {
       const target = event.target;
@@ -1351,17 +1397,6 @@
       }
       updateResource(row.dataset.resourceId, { [field]: target.value });
     });
-    on(resourceEditorEl, 'click', (event) => {
-      const button = event.target.closest('[data-action="remove-resource"]');
-      if (!button) {
-        return;
-      }
-      const row = button.closest('[data-resource-id]');
-      if (!row) {
-        return;
-      }
-      removeResource(row.dataset.resourceId);
-    });
 
     on(teamEditorEl, 'change', (event) => {
       const target = event.target;
@@ -1374,17 +1409,6 @@
         return;
       }
       updatePerson(row.dataset.personId, { [field]: target.value });
-    });
-    on(teamEditorEl, 'click', (event) => {
-      const button = event.target.closest('[data-action="remove-person"]');
-      if (!button) {
-        return;
-      }
-      const row = button.closest('[data-person-id]');
-      if (!row) {
-        return;
-      }
-      removePerson(row.dataset.personId);
     });
 
     on(addResourceBtn, 'click', () => {
@@ -1401,61 +1425,6 @@
       addPerson();
       render();
     });
-
-    on(lineColumnsEl, 'click', (event) => {
-      const button = event.target.closest('[data-action="finish"]');
-      if (!button) {
-        const card = event.target.closest('[data-action="toggle"][data-task-id]');
-        if (!card) {
-          return;
-        }
-        handleTaskToggle(card.dataset.taskId);
-        render();
-        return;
-      }
-      handleTaskFinish(button.dataset.taskId);
-      render();
-    });
-
-    if (recipeListEl) {
-      recipeListEl.addEventListener('click', (event) => {
-        const button = event.target.closest('button[data-action]');
-        if (!button) {
-          return;
-        }
-        const card = button.closest('[data-recipe-id]');
-        if (!card) {
-          return;
-        }
-        const recipeId = card.dataset.recipeId;
-        if (!recipeId) {
-          return;
-        }
-        const action = button.dataset.action;
-        if (action === 'start-recipe') {
-          setActiveRecipe(recipeId, { mode: 'kitchen', openSettings: false });
-          navigateTo('kitchen');
-          return;
-        }
-        if (action === 'edit-recipe') {
-          setActiveRecipe(recipeId, { mode: 'prep', openSettings: true });
-          navigateTo('prep');
-          return;
-        }
-        if (action === 'duplicate-recipe') {
-          duplicateRecipe(recipeId);
-          render();
-          return;
-        }
-        if (action === 'delete-recipe') {
-          if (!window.confirm('Borrar esta receta?')) {
-            return;
-          }
-          removeRecipe(recipeId);
-          render();
-        }
-      });
-    }
     if (recipeFilterEl) {
       recipeFilterEl.addEventListener('change', (event) => {
         setState({ libraryTag: event.target.value });

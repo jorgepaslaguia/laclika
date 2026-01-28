@@ -96,14 +96,17 @@ if (typeof window !== 'undefined') {
       ];
 
       const PROCESS_KEYWORDS = [
-        { process: 'FREIR', regex: /(freir|fritura|frito|rebozar\s*y\s*freir|dorar en aceite)/i },
-        { process: 'GRATINAR', regex: /(gratin|gratinado)/i },
-        { process: 'BANO_MARIA', regex: /(bano\s*maria)/i },
+        { process: 'FREIR', regex: /(fre[ií]r|fritura|frito|rebozar\s*y\s*fre[ií]r|dorar en aceite)/i },
+        { process: 'GRATINAR', regex: /\bgratin(?:ar|ad[ao]s?)\b/i },
+        { process: 'BANO_MARIA', regex: /(ba(?:ñ|n)i?o\s*mar[ií]a)/i },
         { process: 'HORNEAR', regex: /(hornear|al horno|horno|asar|asado|rostiz)/i },
-        { process: 'SALTEAR', regex: /(saltear|confitar|plancha|sellar)/i },
-        { process: 'SOFREIR', regex: /(sofreir|sofrito)/i },
+        { process: 'SALTEAR', regex: /(salte[aá]r|confitar|plancha|sellar)/i },
+        { process: 'SOFREIR', regex: /(sofre[ií]r|sofrito)/i },
         { process: 'REDUCIR', regex: /(reducir|reduccion|reducido)/i },
-        { process: 'COCER', regex: /(cocer|hervir|pochar|guisar|estofar|cuajar)/i },
+        {
+          process: 'COCER',
+          regex: /(cocer|hervir|pochar|guisar|estofar|cuajar|escald(?:ar|ad[ao]s?)|blanque(?:ar|ad[ao]s?)|sous\s*-?\s*vide)/i
+        },
         { process: 'TRITURAR', regex: /(triturar|batir|licuar|emulsionar)/i },
         { process: 'ESCURRIR', regex: /(escurrir|colar)/i },
         { process: 'LAVAR', regex: /(lavar|enjuagar)/i },
@@ -116,7 +119,7 @@ if (typeof window !== 'undefined') {
         { process: 'REPOSAR', regex: /(reposar|descansar)/i },
         { process: 'ENFRIAR', regex: /(enfriar|refrigerar|temperar)/i }
       ];
-      const PROCESS_VERB_REGEX = /\b(lavar|escurrir|cortar|picar|trocear|laminar|pelar|mezclar|montar|formar|freir|saltear|sofreir|sellar|reducir|reduccion|cocer|hervir|pochar|guisar|estofar|hornear|asar|gratin(?:ar|ado)?|bano maria|emplatar|servir|reposar|enfriar|triturar|limpiar|marinar|amasar|aderezar)\b/i;
+      const PROCESS_VERB_REGEX = /\b(lavar|escurrir|cortar|picar|trocear|laminar|pelar|mezclar|montar|formar|fre[ií]r|salte[aá]r|sofre[ií]r|sellar|reducir|reduccion|cocer|hervir|pochar|guisar|estofar|hornear|asar|gratin(?:ar|ad[ao]s?)|ban[i]?o\s*maria|sous\s*-?\s*vide|escald(?:ar|ad[ao]s?)|blanque(?:ar|ad[ao]s?)|emplatar|servir|reposar|enfriar|triturar|limpiar|marinar|amasar|aderezar)\b/i;
       const TECHNIQUE_MAP = {
         BRASEADO: 'COCER',
         BRASADO: 'COCER',
@@ -157,7 +160,7 @@ if (typeof window !== 'undefined') {
         GRATINAR: ['HORNO'],
         BANO_MARIA: ['FOGONES'],
         EMPLATAR: ['ESTACION'],
-        LIMPIAR: ['LAVAVAJILLAS', 'FREGADERO'],
+        LIMPIAR: ['FREGADERO'],
         REPOSAR: ['ESTACION'],
         ENFRIAR: ['ESTACION'],
         TRITURAR: ['ESTACION'],
@@ -1644,6 +1647,8 @@ if (typeof window !== 'undefined') {
         byPhase: {}
       };
 
+      const shouldLogUI = () => typeof window !== 'undefined' && window.DEBUG_UI;
+
         const state = {
           screen: 'library',
           view: 'library',
@@ -1697,6 +1702,16 @@ if (typeof window !== 'undefined') {
       };
 
       let pdfWorkerReady = false;
+
+      function syncPlanRef() {
+        if (state.plan && state.plan !== plan) {
+          plan = state.plan;
+        }
+        state.plan = plan;
+        if (typeof window !== 'undefined') {
+          window.plan = plan;
+        }
+      }
 
       function setState(patch) {
         if (!patch) {
@@ -1762,6 +1777,15 @@ if (typeof window !== 'undefined') {
         state.screen = normalized === 'library' ? 'library' : 'plan';
         if (normalized === 'kitchen') {
           state.advancedOpen = false;
+          if (plan && Array.isArray(plan.fases || plan.phases)) {
+            const phases = plan.fases || plan.phases || [];
+            const active = plan.faseActiva || plan.phaseActive || null;
+            if (phases.length && (!active || !phases.includes(active))) {
+              plan.faseActiva = phases[0];
+              plan.phaseActive = plan.faseActiva;
+              resetPhaseTimer();
+            }
+          }
         }
         if (normalized === 'library') {
           state.advancedOpen = false;
@@ -2328,15 +2352,64 @@ if (typeof window !== 'undefined') {
         return normalizedTask;
       }
 
+      function coercePlanShape(inputPlan) {
+        const base = inputPlan && typeof inputPlan === 'object' ? inputPlan : {};
+        const plan = { ...base };
+        const normalizedResources = Array.isArray(plan.recursos) && plan.recursos.length
+          ? plan.recursos
+          : Array.isArray(plan.resources)
+            ? plan.resources
+            : Array.isArray(plan.resources?.items)
+              ? plan.resources.items
+              : Array.isArray(plan.recursos)
+                ? plan.recursos
+                : [];
+        plan.resources = normalizedResources;
+        plan.recursos = normalizedResources;
+        const tareasArray = Array.isArray(plan.tareas) ? plan.tareas : null;
+        const tasksArray = Array.isArray(plan.tasks) ? plan.tasks : null;
+        let normalizedTasks = null;
+        if (tareasArray && tareasArray.length) {
+          normalizedTasks = tareasArray;
+        } else if (tasksArray && tasksArray.length) {
+          normalizedTasks = tasksArray;
+        } else if (plan.tasksByDish && typeof plan.tasksByDish === 'object') {
+          normalizedTasks = Object.values(plan.tasksByDish).flatMap((list) => (Array.isArray(list) ? list : []));
+        } else if (plan.tasks_by_dish && typeof plan.tasks_by_dish === 'object') {
+          normalizedTasks = Object.values(plan.tasks_by_dish).flatMap((list) => (Array.isArray(list) ? list : []));
+        } else {
+          normalizedTasks = tasksArray || tareasArray || [];
+        }
+        plan.tasks = normalizedTasks;
+        plan.tareas = normalizedTasks;
+        const equipoArray = Array.isArray(plan.equipo) ? plan.equipo : null;
+        const teamArray = Array.isArray(plan.team) ? plan.team : null;
+        const peopleArray = Array.isArray(plan.people) ? plan.people : null;
+        let teamSource = null;
+        if (equipoArray && equipoArray.length) {
+          teamSource = equipoArray;
+        } else if (teamArray && teamArray.length) {
+          teamSource = teamArray;
+        } else if (peopleArray && peopleArray.length) {
+          teamSource = peopleArray;
+        } else {
+          teamSource = teamArray || peopleArray || equipoArray || [];
+        }
+        plan.team = teamSource;
+        plan.people = teamSource;
+        plan.equipo = teamSource;
+        return plan;
+      }
+
       function normalizePlan(inputPlan) {
-        const raw = deepClone(inputPlan ?? EMPTY_PLAN);
+        const raw = coercePlanShape(deepClone(inputPlan ?? EMPTY_PLAN));
         const allowEmpty = Boolean(raw?.isEmpty);
         const mergedPlatos = Array.isArray(raw?.platos)
           ? raw.platos
           : Array.isArray(raw?.dishes)
             ? raw.dishes
             : [];
-        const rawResources = allowEmpty ? [] : raw.recursos || raw.resources?.items || raw.resources || [];
+        const rawResources = allowEmpty ? [] : raw.recursos || raw.resources || [];
         const rawTeam = allowEmpty ? [] : raw.equipo || raw.team || [];
         const rawTasks = allowEmpty ? [] : raw.tareas || raw.tasks || [];
 
@@ -2387,7 +2460,8 @@ if (typeof window !== 'undefined') {
 
         planNormalized.tasks = planNormalized.tareas;
         planNormalized.team = planNormalized.equipo;
-        planNormalized.resources = { items: planNormalized.recursos };
+        planNormalized.people = planNormalized.equipo;
+        planNormalized.resources = planNormalized.recursos;
         planNormalized.phases = planNormalized.fases;
         planNormalized.phaseActive = planNormalized.faseActiva;
         return planNormalized;
@@ -2396,7 +2470,15 @@ if (typeof window !== 'undefined') {
       function getEffectiveResourcesCatalog(inputResources) {
         const source = Array.isArray(inputResources)
           ? inputResources
-          : plan?.recursos || plan?.resources?.items || plan?.resources || [];
+          : Array.isArray(inputResources?.items)
+            ? inputResources.items
+            : Array.isArray(plan?.recursos)
+              ? plan.recursos
+              : Array.isArray(plan?.resources)
+                ? plan.resources
+                : Array.isArray(plan?.resources?.items)
+                  ? plan.resources.items
+                  : [];
         const ids = new Set();
         const list = [];
         (source || []).forEach((resource) => {
@@ -2494,6 +2576,15 @@ if (typeof window !== 'undefined') {
         const planInput = nextPlan ?? EMPTY_PLAN;
         const inputTasks = Array.isArray(planInput?.tareas || planInput?.tasks) ? (planInput.tareas || planInput.tasks).length : 0;
         plan = normalizePlan(planInput);
+        syncPlanRef();
+        if (shouldLogUI()) {
+          console.info('[DEBUG_UI] setPlan normalized', {
+            tasks: plan?.tareas?.length || 0,
+            phases: plan?.fases?.length || 0,
+            resources: plan?.recursos?.length || 0,
+            team: plan?.equipo?.length || 0
+          });
+        }
         debugLog('normalize-plan', {
           tareasCount: plan?.tareas?.length || 0,
           recursosCount: plan?.recursos?.length || 0,
@@ -3218,6 +3309,9 @@ function normalizeLine(line) {
         if (/asado|asar|rostiz/.test(normalized)) {
           forced.push(normalizeProcessKey('asar'));
         }
+        if (/gratin(?:ar|ad[ao]s?)/.test(normalized)) {
+          forced.push('GRATINAR');
+        }
         return normalizeProcessList(forced);
       }
 
@@ -3365,9 +3459,9 @@ function normalizeLine(line) {
             typeKey = 'FREGADERO';
           } else if (/cortar|picar|pelar/.test(normalized)) {
             typeKey = 'ESTACION';
-          } else if (/mezclar|montar|emplatar|reposar|enfriar/.test(normalized)) {
+          } else if (/mezclar|montar|emplatar|reposar|enfriar|triturar/.test(normalized)) {
             typeKey = 'ESTACION';
-          } else if (/cocer|saltear|freir|sofreir|reducir|hervir|guisar|cocinar/.test(normalized)) {
+          } else if (/cocer|saltear|freir|sofreir|reducir|hervir|guisar|cocinar|pochar|escald|blanque|sous\s*vide/.test(normalized)) {
             typeKey = 'FOGONES';
           } else if (/hornear|asar|gratin/.test(normalized)) {
             typeKey = 'HORNO';
@@ -4436,12 +4530,36 @@ function normalizeLine(line) {
           const fallbackIngredients = /^\s*(ingredientes?|ing\.?)\s*[:\-]/i;
           const fallbackPax = /^\s*(pax|raciones|comensales)\b/i;
           let stopAtIngredients = false;
+          // Guardrail: "Recursos:" en linea sola activa metaMode; se apaga con MENU/MENÚ.
+          // Objetivo: evitar que recursos/notas generen platos por heuristica.
+          let metaMode = null;
+          let metaLines = 0;
+          const META_RESOURCES_MAX_LINES = 20;
           (parseLines || []).forEach((line) => {
             if (platos.length >= maxPlatos || stopAtIngredients) {
               return;
             }
             const trimmed = String(line || '').trim();
             if (!trimmed) {
+              return;
+            }
+            const isResourceHeader = /^recursos?\s*:?\s*$/i.test(trimmed);
+            if (isResourceHeader) {
+              metaMode = 'resources';
+              metaLines = 0;
+              currentSection = null;
+              return;
+            }
+            if (metaMode === 'resources') {
+              if (/^men[uú]\b/i.test(trimmed)) {
+                metaMode = null;
+                currentSection = null;
+              }
+              metaLines += 1;
+              if (metaLines >= META_RESOURCES_MAX_LINES) {
+                metaMode = null;
+                metaLines = 0;
+              }
               return;
             }
             if (fallbackIngredients.test(trimmed)) {
@@ -4748,6 +4866,11 @@ function normalizeLine(line) {
           let currentSection = null;
           let currentDish = null;
           let mode = null;
+          // Guardrail: "Recursos:" en linea sola activa metaMode; se apaga con MENU/MENÚ.
+          // Objetivo: evitar que recursos/notas generen platos por heuristica.
+          let metaMode = null;
+          let metaLines = 0;
+          const META_RESOURCES_MAX_LINES = 20;
           const normalizeSection = (value) => String(value || '').trim().toUpperCase();
           const isSectionHeaderLine = (raw) => {
             const trimmed = String(raw || '').trim();
@@ -4867,6 +4990,9 @@ function normalizeLine(line) {
             }
           const menuMatch = rawLine.match(/^menu\b[^:]*:\s*(.*)$/i);
             if (menuMatch) {
+              if (metaMode === 'resources') {
+                metaMode = null;
+              }
               const rest = menuMatch[1];
               if (rest) {
                 rest
@@ -4888,6 +5014,27 @@ function normalizeLine(line) {
 
             const trimmed = rawLine.trim();
             if (!trimmed) {
+              return;
+            }
+            const isResourceHeader = /^recursos?\s*:?\s*$/i.test(trimmed);
+            if (isResourceHeader) {
+              metaMode = 'resources';
+              metaLines = 0;
+              currentDish = null;
+              mode = null;
+              return;
+            }
+            if (metaMode === 'resources') {
+              if (/^men[uú]\b/i.test(trimmed)) {
+                metaMode = null;
+                currentDish = null;
+                mode = null;
+              }
+              metaLines += 1;
+              if (metaLines >= META_RESOURCES_MAX_LINES) {
+                metaMode = null;
+                metaLines = 0;
+              }
               return;
             }
             const token = normalizeToken(trimmed);
@@ -5350,7 +5497,7 @@ function normalizeLine(line) {
         if (/gratin/.test(normalized)) {
           return 'GRATINAR';
         }
-        if (/bano maria/.test(normalized)) {
+        if (/ban[i]?o maria/.test(normalized)) {
           return 'BANO_MARIA';
         }
         if (/(frit|frito)/.test(normalized)) {
@@ -5362,7 +5509,7 @@ function normalizeLine(line) {
         if (/(horno|asar|asado|hornead|gratin|rostiz)/.test(normalized)) {
           return 'HORNEAR';
         }
-        if (/(hervir|cocer|pochar|guisar|estofar)/.test(normalized)) {
+        if (/(hervir|cocer|pochar|guisar|estofar|escald|blanque|sous\s*vide)/.test(normalized)) {
           return 'COCER';
         }
         return 'SALTEAR';
@@ -5387,7 +5534,7 @@ function normalizeLine(line) {
         if (resource?.tipo === RESOURCE_TYPES.COCCION) {
           const token = normalizeToken(resource.nombre || '');
           if (resourceId === 'HORNO' || token.includes('horno')) {
-            if (/bano maria/.test(normalizeToken(dishName))) {
+            if (/ban[i]?o maria/.test(normalizeToken(dishName))) {
               return 'BANO_MARIA';
             }
             if (/gratin/.test(normalizeToken(dishName))) {
@@ -6799,7 +6946,13 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
           }
           const tasks = planToCheck.tasks || planToCheck.tareas;
           const team = planToCheck.team || planToCheck.equipo;
-          const resources = planToCheck.resources?.items || planToCheck.recursos;
+          const resources = Array.isArray(planToCheck.recursos)
+            ? planToCheck.recursos
+            : Array.isArray(planToCheck.resources)
+              ? planToCheck.resources
+              : Array.isArray(planToCheck.resources?.items)
+                ? planToCheck.resources.items
+                : [];
           const phases = planToCheck.phases || planToCheck.fases || [];
           const phaseActive = planToCheck.phaseActive || planToCheck.faseActiva;
 
@@ -7120,7 +7273,13 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         }
         const errors = [];
         const warnings = [];
-        const resources = planToCheck.resources?.items || planToCheck.recursos || [];
+        const resources = Array.isArray(planToCheck.recursos)
+          ? planToCheck.recursos
+          : Array.isArray(planToCheck.resources)
+            ? planToCheck.resources
+            : Array.isArray(planToCheck.resources?.items)
+              ? planToCheck.resources.items
+              : [];
         const tasks = planToCheck.tasks || planToCheck.tareas || [];
         const resourceSet = new Set(resources.map((resource) => resource.id));
         const resourceTypeKeys = new Set(
@@ -7383,6 +7542,7 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
       }
 
         function validateAndStore(options = {}) {
+          syncPlanRef();
           if (plan?.isEmpty) {
             state.diagnostics = emptyDiagnostics();
             state.issues = [];
@@ -7677,6 +7837,12 @@ function buildTask(id, dishName, name, phase, duration, process, resource, level
         state.activeRecipeId = null;
         state.unsavedPlan = true;
         localStorage.removeItem(RECIPE_ACTIVE_KEY);
+        if (shouldLogUI()) {
+          console.info('[ui-debug] interpret', {
+            resources: plan?.recursos?.length || 0,
+            missingResources: state?.diagnostics?.missingResources || []
+          });
+        }
 
         goToView('prep', { replace: true });
         updateDebugText();
@@ -8958,7 +9124,13 @@ async function handlePdfFile(file) {
 
         function getBlockingIssues(planToCheck) {
           const issues = [];
-          const resources = planToCheck.resources?.items || planToCheck.recursos || [];
+          const resources = Array.isArray(planToCheck.recursos)
+            ? planToCheck.recursos
+            : Array.isArray(planToCheck.resources)
+              ? planToCheck.resources
+              : Array.isArray(planToCheck.resources?.items)
+                ? planToCheck.resources.items
+                : [];
           const tasks = planToCheck.tasks || planToCheck.tareas || [];
           const team = planToCheck.team || planToCheck.equipo || [];
           const phases = planToCheck.phases || planToCheck.fases || PHASES;
@@ -11217,6 +11389,7 @@ function updateControls() {
       }
 
       function render() {
+        syncPlanRef();
         document.body.classList.toggle('screen-library', state.screen === 'library');
         document.body.classList.toggle('screen-plan', state.screen === 'plan');
         renderLibrary();
@@ -11348,6 +11521,7 @@ function updateControls() {
       }
 
       function updateResourceField(resourceId, field, value) {
+        syncPlanRef();
         const resource = plan.recursos.find((item) => item.id === resourceId);
         if (!resource) {
           return;
@@ -11386,6 +11560,15 @@ function updateControls() {
         validateAndStore();
         calculatePlan({ silent: true });
         render();
+        if (shouldLogUI()) {
+          console.info('[ui-debug] resource-edit', {
+            resourceId,
+            field,
+            resources: plan?.recursos?.length || 0,
+            statePlan: state?.plan === plan,
+            unsavedPlan: state?.unsavedPlan
+          });
+        }
       }
 
       function updateResource(resourceId, patch) {
@@ -11398,6 +11581,7 @@ function updateControls() {
       }
 
       function removeResource(resourceId) {
+        syncPlanRef();
         if (!resourceId) {
           return;
         }
@@ -11411,9 +11595,18 @@ function updateControls() {
         validateAndStore();
         calculatePlan({ silent: true });
         render();
+        if (shouldLogUI()) {
+          console.info('[ui-debug] resource-remove', {
+            resourceId,
+            resources: plan?.recursos?.length || 0,
+            statePlan: state?.plan === plan,
+            unsavedPlan: state?.unsavedPlan
+          });
+        }
       }
 
         function updatePersonField(personId, field, value) {
+          syncPlanRef();
           const person = plan.equipo.find((item) => item.id === personId);
           if (!person) {
             return;
@@ -11430,6 +11623,15 @@ function updateControls() {
             person.nivel = Math.max(1, Math.min(3, Number(value) || 1));
           }
           handleTeamChange();
+          if (shouldLogUI()) {
+            console.info('[ui-debug] team-edit', {
+              personId,
+              field,
+              team: plan?.equipo?.length || 0,
+              statePlan: state?.plan === plan,
+              unsavedPlan: state?.unsavedPlan
+            });
+          }
         }
 
         function updatePerson(personId, patch) {
@@ -11477,6 +11679,7 @@ function updateControls() {
         }
 
       function addResource() {
+        syncPlanRef();
         const baseName = `Recurso ${plan.recursos.length + 1}`;
         const existing = new Set(plan.recursos.map((item) => item.id));
         const id = ensureUniqueId(makeIdFromName(baseName, 'RECURSO'), existing);
@@ -11488,9 +11691,17 @@ function updateControls() {
         });
         syncMaps();
         validateAndStore();
+        if (shouldLogUI()) {
+          console.info('[ui-debug] resource-add', {
+            resources: plan?.recursos?.length || 0,
+            statePlan: state?.plan === plan,
+            unsavedPlan: state?.unsavedPlan
+          });
+        }
       }
 
         function addPerson() {
+          syncPlanRef();
           const existing = new Set(plan.equipo.map((item) => item.id));
           const id = generatePersonId(existing);
           plan.equipo.push({
@@ -11502,6 +11713,13 @@ function updateControls() {
             restricciones: {}
           });
           handleTeamChange();
+          if (shouldLogUI()) {
+            console.info('[ui-debug] team-add', {
+              team: plan?.equipo?.length || 0,
+              statePlan: state?.plan === plan,
+              unsavedPlan: state?.unsavedPlan
+            });
+          }
         }
 
       function handleTaskFinish(taskId) {

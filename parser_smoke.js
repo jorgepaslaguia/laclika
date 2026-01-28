@@ -20,6 +20,9 @@
   }
 
   function dumpT4(label, obj) {
+    if (!DEBUG_SMOKE) {
+      return;
+    }
     console.log(`${label}:`, obj);
   }
 
