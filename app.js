@@ -910,7 +910,59 @@
     });
 
     on(pdfInputEl, 'change', (event) => handlePdfFile(event.target.files[0]));
-    on(parseTextBtn, 'click', handleManualText);
+    const handleInterpretClick = () => {
+      try {
+        const rawText = manualTextEl ? String(manualTextEl.value || '') : '';
+        const lines = rawText
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+        if (shouldLogUI()) {
+          console.info('[ui-debug] interpret click', { length: rawText.length, lines: lines.length });
+          const prePlan = window.plan;
+          console.info('[ui-debug] plan pre-set', {
+            tasks: prePlan?.tareas?.length || prePlan?.tasks?.length || 0,
+            phases: prePlan?.fases?.length || prePlan?.phases?.length || 0,
+            tasksByDishKeys: prePlan?.tasksByDish
+              ? Object.keys(prePlan.tasksByDish).length
+              : prePlan?.tasks_by_dish
+                ? Object.keys(prePlan.tasks_by_dish).length
+                : 0
+          });
+        }
+        const result = typeof handleManualText === 'function' ? handleManualText() : null;
+        if (shouldLogUI()) {
+          console.info('[ui-debug] interpret result keys', {
+            resultKeys: result ? Object.keys(result) : []
+          });
+          if (result?.draft) {
+            console.info('[ui-debug] draft', {
+              dishes: result.draft?.platos?.length || 0,
+              keys: Object.keys(result.draft || {})
+            });
+          }
+          if (result?.menuIR) {
+            console.info('[ui-debug] menuIR', {
+              dishes: result.menuIR?.platos?.length || 0,
+              keys: Object.keys(result.menuIR || {})
+            });
+          }
+          const postPlan = result?.plan || window.plan;
+          console.info('[ui-debug] plan post', {
+            tasks: postPlan?.tareas?.length || postPlan?.tasks?.length || 0,
+            phases: postPlan?.fases?.length || postPlan?.phases?.length || 0,
+            tasksByDishKeys: postPlan?.tasksByDish
+              ? Object.keys(postPlan.tasksByDish).length
+              : postPlan?.tasks_by_dish
+                ? Object.keys(postPlan.tasks_by_dish).length
+                : 0
+          });
+        }
+      } catch (error) {
+        reportActionError(error);
+      }
+    };
+    on(parseTextBtn, 'click', handleInterpretClick);
     if (emptyUploadBtn) {
       emptyUploadBtn.addEventListener('click', () => {
         if (pdfInputEl) {

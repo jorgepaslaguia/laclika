@@ -2582,7 +2582,12 @@ if (typeof window !== 'undefined') {
             tasks: plan?.tareas?.length || 0,
             phases: plan?.fases?.length || 0,
             resources: plan?.recursos?.length || 0,
-            team: plan?.equipo?.length || 0
+            team: plan?.equipo?.length || 0,
+            tasksByDishKeys: plan?.tasksByDish
+              ? Object.keys(plan.tasksByDish).length
+              : plan?.tasks_by_dish
+                ? Object.keys(plan.tasks_by_dish).length
+                : 0
           });
         }
         debugLog('normalize-plan', {
@@ -7959,8 +7964,10 @@ async function handlePdfFile(file) {
         appState.menuRawText = text;
         appState.menuRawTextSource = { type: 'manual', name: pdfState.name || null };
         updateDebugText();
+        let debugResult = null;
         try {
-          processMenuText(text, { userTriggered: true, source: 'manual' });
+          const draft = processMenuText(text, { userTriggered: true, source: 'manual' });
+          debugResult = { draft, menuIR: appState.menuIR || null, plan };
           pdfState.status = 'Texto manual interpretado.';
           appState.lastPdfError = null;
           updatePdfStatus();
@@ -7972,6 +7979,7 @@ async function handlePdfFile(file) {
             console.warn('[Manual] Error interpretando', error);
           }
         }
+        return debugResult;
       }
 
       function isBasicTask(task) {
