@@ -7942,13 +7942,21 @@ async function handlePdfFile(file) {
         }
       }
 
-      function handleManualText() {
-        if (!manualTextEl) {
-          return;
-        }
-        const text = manualTextEl.value.trim();
+      function handleManualText(textOverride = null) {
+        const rawInput = typeof textOverride === 'string'
+          ? textOverride
+          : manualTextEl
+            ? manualTextEl.value
+            : '';
+        const text = String(rawInput || '').trim();
         if (!text) {
-          return;
+          return { draft: null, menuIR: null, plan: null };
+        }
+        if (manualTextEl && rawInput && manualTextEl.value !== rawInput) {
+          manualTextEl.value = rawInput;
+        }
+        if (state && typeof state === 'object') {
+          state.manualText = String(rawInput || '');
         }
         const preview = text
           .split(/\r?\n/)
@@ -7964,7 +7972,7 @@ async function handlePdfFile(file) {
         appState.menuRawText = text;
         appState.menuRawTextSource = { type: 'manual', name: pdfState.name || null };
         updateDebugText();
-        let debugResult = null;
+        let debugResult = { draft: null, menuIR: null, plan: null };
         try {
           const draft = processMenuText(text, { userTriggered: true, source: 'manual' });
           debugResult = { draft, menuIR: appState.menuIR || null, plan };
@@ -7978,6 +7986,19 @@ async function handlePdfFile(file) {
           if (state.debugEnabled) {
             console.warn('[Manual] Error interpretando', error);
           }
+        }
+        if (shouldLogUI()) {
+          const resultPlan = debugResult?.plan || null;
+          console.info('[ui-debug] interpret result', {
+            keys: Object.keys(debugResult || {}),
+            counts: {
+              dishes: debugResult?.draft?.platos?.length || 0,
+              tasks: resultPlan?.tareas?.length || resultPlan?.tasks?.length || 0,
+              phases: resultPlan?.fases?.length || resultPlan?.phases?.length || 0,
+              resources: resultPlan?.recursos?.length || resultPlan?.resources?.length || 0,
+              team: resultPlan?.equipo?.length || resultPlan?.team?.length || resultPlan?.people?.length || 0
+            }
+          });
         }
         return debugResult;
       }
@@ -8046,6 +8067,36 @@ async function handlePdfFile(file) {
 
       function dependenciesMet(task) {
         return task.depende_de.every((depId) => tareaById[depId]?.estado === 'FINALIZADA');
+      }
+
+      function dumpInterpretState() {
+        const rawText =
+          (state && typeof state === 'object' && typeof state.manualText === 'string' && state.manualText) ||
+          appState?.menuRawText ||
+          '';
+        const lines = String(rawText || '')
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+        const summarize = (candidate) => ({
+          tasks: candidate?.tareas?.length || candidate?.tasks?.length || 0,
+          tasksByDishKeys: candidate?.tasksByDish
+            ? Object.keys(candidate.tasksByDish).length
+            : candidate?.tasks_by_dish
+              ? Object.keys(candidate.tasks_by_dish).length
+              : 0,
+          phases: candidate?.fases?.length || candidate?.phases?.length || 0,
+          resources: candidate?.recursos?.length || candidate?.resources?.length || 0,
+          team: candidate?.equipo?.length || candidate?.team?.length || candidate?.people?.length || 0
+        });
+        const payload = {
+          manualTextLength: String(rawText || '').length,
+          firstLines: lines.slice(0, 5),
+          statePlan: summarize(state?.plan),
+          windowPlan: summarize(plan)
+        };
+        console.info('[ui-debug] dumpInterpretState', payload);
+        return payload;
       }
 
       function getActiveTasks() {
@@ -11774,6 +11825,7 @@ function updateControls() {
         window.state = state;
         window.plan = plan;
         window.render = render;
+        window.dumpInterpretState = dumpInterpretState;
         window.updatePdfStatus = updatePdfStatus;
         window.setUIMode = setUIMode;
         window.goToView = goToView;

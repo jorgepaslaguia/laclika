@@ -910,15 +910,29 @@
     });
 
     on(pdfInputEl, 'change', (event) => handlePdfFile(event.target.files[0]));
+    const getManualTextFromUI = () => {
+      const ta = document.getElementById('menuTextArea');
+      const fallback = window.state?.manualText || '';
+      return String(ta?.value ?? fallback ?? '').trimEnd();
+    };
+
     const handleInterpretClick = () => {
       try {
-        const rawText = manualTextEl ? String(manualTextEl.value || '') : '';
+        const rawText = getManualTextFromUI();
+        if (window.state && typeof window.state === 'object') {
+          window.state.manualText = rawText;
+        }
         const lines = rawText
           .split(/\r?\n/)
           .map((line) => line.trim())
           .filter(Boolean);
+        const preview = lines.slice(0, 3);
         if (shouldLogUI()) {
-          console.info('[ui-debug] interpret click', { length: rawText.length, lines: lines.length });
+          console.info('[ui-debug] interpret click', {
+            chars: rawText.length,
+            nonEmptyLines: lines.length,
+            preview
+          });
           const prePlan = window.plan;
           console.info('[ui-debug] plan pre-set', {
             tasks: prePlan?.tareas?.length || prePlan?.tasks?.length || 0,
@@ -930,7 +944,30 @@
                 : 0
           });
         }
-        const result = typeof handleManualText === 'function' ? handleManualText() : null;
+        if (!rawText.trim()) {
+          if (planStatusEl) {
+            planStatusEl.textContent = 'No hay texto para interpretar. Pega un menu o carga un PDF.';
+          }
+          if (shouldLogUI()) {
+            console.warn('[ui-debug] interpret abort: empty text');
+          }
+          return;
+        }
+        const result = typeof handleManualText === 'function' ? handleManualText(rawText) : null;
+        if (result?.plan && typeof window.setPlan === 'function') {
+          window.setPlan(
+            result.plan,
+            result.draft || null,
+            '',
+            result.plan?.preguntas_rapidas || [],
+            { markDirty: true }
+          );
+          if (typeof requestRender === 'function') {
+            requestRender();
+          } else if (typeof window.render === 'function') {
+            window.render();
+          }
+        }
         if (shouldLogUI()) {
           console.info('[ui-debug] interpret result keys', {
             resultKeys: result ? Object.keys(result) : []
@@ -957,12 +994,25 @@
                 ? Object.keys(postPlan.tasks_by_dish).length
                 : 0
           });
+          if (window.state?.plan) {
+            console.info('[ui-debug] state.plan', {
+              tasks: window.state.plan?.tareas?.length || window.state.plan?.tasks?.length || 0,
+              phases: window.state.plan?.fases?.length || window.state.plan?.phases?.length || 0,
+              resources: window.state.plan?.recursos?.length || window.state.plan?.resources?.length || 0,
+              team: window.state.plan?.equipo?.length || window.state.plan?.team?.length || window.state.plan?.people?.length || 0
+            });
+          }
         }
       } catch (error) {
         reportActionError(error);
       }
     };
     on(parseTextBtn, 'click', handleInterpretClick);
+    on(manualTextEl, 'input', () => {
+      if (window.state && typeof window.state === 'object') {
+        window.state.manualText = manualTextEl ? String(manualTextEl.value || '') : '';
+      }
+    });
     if (emptyUploadBtn) {
       emptyUploadBtn.addEventListener('click', () => {
         if (pdfInputEl) {
